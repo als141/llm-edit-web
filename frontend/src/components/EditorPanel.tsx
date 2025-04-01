@@ -7,10 +7,9 @@ import { useEditorStore } from "@/store/editorStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function EditorPanel() {
-  const { currentText, fileContent } = useEditorStore((state) => ({
-     currentText: state.currentText,
-     fileContent: state.fileContent, // 初期状態判定用
-  }));
+  // 個別のセレクタを使用
+  const currentText = useEditorStore(state => state.currentText);
+  const fileContent = useEditorStore(state => state.fileContent);
 
   // Textareaは読み取り専用とし、編集はAI経由のみとする
   // または、編集可能にして、変更があれば差分を明示するなど、仕様による

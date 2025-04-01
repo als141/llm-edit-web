@@ -10,7 +10,9 @@ interface DiffViewProps {
 }
 
 export function DiffView({ response }: DiffViewProps) {
-  const { currentText } = useEditorStore((state) => ({ currentText: state.currentText }));
+  // 個別のセレクタを使用
+  const currentText = useEditorStore(state => state.currentText);
+  
   // useThemeフックを使ってダークモード判定 (必要なら)
   // import { useTheme } from "next-themes";
   // const { resolvedTheme } = useTheme();

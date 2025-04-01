@@ -9,11 +9,11 @@ import { SendHorizonal } from 'lucide-react';
 import { ChatMessage } from '@/components/ChatMessage'; // ChatMessageコンポーネントを別途作成
 
 export function ChatPanel() {
-  const { history, sendMessage, isLoading } = useEditorStore((state) => ({
-    history: state.history,
-    sendMessage: state.sendMessage,
-    isLoading: state.isLoading,
-  }));
+  // 個別のセレクタを使用して安定した参照を維持
+  const history = useEditorStore((state) => state.history);
+  const sendMessage = useEditorStore((state) => state.sendMessage);
+  const isLoading = useEditorStore((state) => state.isLoading);
+  
   const [inputValue, setInputValue] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 

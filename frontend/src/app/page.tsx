@@ -11,10 +11,9 @@ import { toast } from "sonner";
 export default function Home() {
   // ↓↓↓ useToast は削除 ↓↓↓
   // const { toast } = useToast();
-  const { error, clearError } = useEditorStore((state) => ({
-     error: state.error,
-     clearError: state.clearError
-  }));
+  // Use separate selectors instead of object to maintain stable references
+  const error = useEditorStore((state) => state.error);
+  const clearError = useEditorStore((state) => state.clearError);
 
   // エラーが発生したらトーストで表示
   useEffect(() => {

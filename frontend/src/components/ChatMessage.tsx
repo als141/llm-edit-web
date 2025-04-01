@@ -15,7 +15,11 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { startFeedback } = useEditorStore();
+  // 個別のセレクタを使用
+  const startFeedback = useEditorStore(state => state.startFeedback);
+  const history = useEditorStore(state => state.history);
+  const lastProposal = useEditorStore(state => state.lastProposal);
+  
   const isUser = message.role === MessageRole.User;
   const isAssistant = message.role === MessageRole.Assistant;
   const isSystem = message.role === MessageRole.System;
@@ -79,8 +83,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
     return null;
   };
 
-   const history = useEditorStore(s => s.history);
-   const lastProposal = useEditorStore(s => s.lastProposal);
    const isLatestAssistantMessage = history.length > 0 && history[history.length - 1]?.id === message.id;
    // 提案メッセージであり、かつそれがストア内の最新の提案と一致する場合にアクションを表示
    const showActions = isLatestAssistantMessage && isProposal && aiResponse && lastProposal?.status === aiResponse?.status;
