@@ -11,6 +11,7 @@ import {
 import { callEditApi } from '@/lib/api';
 import { nanoid } from 'nanoid';
 import { toast } from "sonner";
+// lucide-react コンポーネントは直接インポートしない
 
 interface EditorState {
   fileContent: string;
@@ -74,6 +75,13 @@ export const useEditorStore = create<EditorState>()(
         state.lastProposal = proposal;
         state.isFeedbackMode = true;
         console.log("フィードバックモード開始:", proposal);
+        
+        // フィードバックモード開始を通知 - JSXではなくアイコン識別子を使用
+        toast.info("フィードバック入力モード", {
+          description: "編集提案に対するフィードバックを入力できます",
+          icon: "MessageSquarePlus",
+          duration: 3000,
+        });
       });
     },
 
@@ -377,6 +385,7 @@ export const useEditorStore = create<EditorState>()(
           // 適用成功のトースト通知
           toast.success("編集を適用しました", {
             description: appliedMessage,
+            icon: "CheckCircle"
           });
         }
 
@@ -401,6 +410,7 @@ export const useEditorStore = create<EditorState>()(
          // エラーのトースト通知
          toast.error("編集の適用に失敗しました", {
            description: errorMessage,
+           icon: "AlertCircle"
          });
       }
     },
@@ -423,6 +433,7 @@ export const useEditorStore = create<EditorState>()(
       // 拒否のトースト通知
       toast.info("編集提案を拒否しました", {
         description: "別の指示を入力できます",
+        icon: "XCircle"
       });
     },
   }))

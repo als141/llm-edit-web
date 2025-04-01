@@ -52,6 +52,18 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
+  /* フィードバック用カラー */
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #ddd6fe;
+  --purple-300: #c4b5fd;
+  --purple-400: #a78bfa;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-800: #5b21b6;
+  --purple-900: #4c1d95;
+
   /* 基本高さ変数 - フッターなしに修正 */
   --header-height: 57px;
   --main-height: calc(100vh - var(--header-height));
@@ -167,6 +179,64 @@
 @utility edit-highlight {
   background-color: color-mix(in srgb, var(--primary) 10%, transparent);
   border-left: 2px solid var(--primary);
+}
+
+/* フィードバックメッセージのカスタムスタイル */
+[data-feedback="true"] {
+  position: relative;
+  z-index: 5;
+}
+
+/* フィードバックメッセージの微妙な動き */
+[data-feedback="true"]:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* フィードバックモードの編集ハイライト強化 */
+@utility feedback-highlight {
+  background-color: color-mix(in srgb, var(--purple-500) 10%, transparent);
+  border-left: 2px solid var(--purple-500);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.15);
+}
+
+/* フィードバックバッジアニメーション */
+.feedback-badge {
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+/* フィードバックボタングロー効果 */
+.feedback-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.feedback-button::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(167, 139, 250, 0) 0%,
+    rgba(167, 139, 250, 0.1) 50%,
+    rgba(167, 139, 250, 0) 100%
+  );
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
 }
 
 /* レスポンシブ用ユーティリティクラス */
