@@ -10,6 +10,7 @@ import {
 } from '@/lib/types';
 import { callEditApi } from '@/lib/api';
 import { nanoid } from 'nanoid';
+import { toast } from "sonner";
 
 interface EditorState {
   fileContent: string;
@@ -19,6 +20,8 @@ interface EditorState {
   error: string | null;
   lastProposal: AiResponse | null;
   isEditing: boolean;
+  isFeedbackMode: boolean;  // フィードバックモードかどうかを示すフラグ
+  feedbackMessageIds: string[];  // フィードバックとして送信されたメッセージのID
 
   // 既存の関数
   setFileContent: (content: string) => void;
@@ -47,6 +50,8 @@ export const useEditorStore = create<EditorState>()(
     error: null,
     lastProposal: null,
     isEditing: false,
+    isFeedbackMode: false,
+    feedbackMessageIds: [],
 
     setFileContent: (content) => {
       set((state) => {
@@ -56,6 +61,7 @@ export const useEditorStore = create<EditorState>()(
         state.lastProposal = null;
         state.error = null;
         state.isEditing = false;
+        state.isFeedbackMode = false;
       });
     },
 
@@ -64,7 +70,11 @@ export const useEditorStore = create<EditorState>()(
     },
 
     startFeedback: (proposal) => {
-      set({ lastProposal: proposal });
+      set((state) => {
+        state.lastProposal = proposal;
+        state.isFeedbackMode = true;
+        console.log("フィードバックモード開始:", proposal);
+      });
     },
 
     // 新機能: チャット履歴の削除
@@ -73,6 +83,13 @@ export const useEditorStore = create<EditorState>()(
         state.history = [];
         state.lastProposal = null;
         state.error = null;
+        state.isFeedbackMode = false;
+        state.feedbackMessageIds = [];
+      });
+      
+      // 履歴削除の成功メッセージを表示
+      toast.success("チャット履歴を削除しました", {
+        description: "新しい会話を始めることができます",
       });
     },
     
@@ -108,17 +125,27 @@ export const useEditorStore = create<EditorState>()(
       const userMessageContent = message.trim();
       if (!userMessageContent) return;
 
+      const messageId = nanoid();
       const currentUserMessage: ConversationMessage = {
-        id: nanoid(),
+        id: messageId,
         role: MessageRole.User,
         content: userMessageContent,
         type: MessageType.Normal,
       };
+      
+      // フィードバックメッセージの場合、IDを記録する
+      if (isFeedback) {
+        set(state => {
+          state.feedbackMessageIds.push(messageId);
+        });
+      }
 
       set((state) => {
         state.history.push(currentUserMessage);
         state.isLoading = true;
         state.error = null;
+        
+        // ローディングメッセージを追加
         state.history.push({
           id: nanoid(),
           role: MessageRole.Assistant,
@@ -127,13 +154,19 @@ export const useEditorStore = create<EditorState>()(
         });
       });
 
+      // フィードバックモードかどうかを確認し、適切な提案を取得
       const proposalForFeedback = isFeedback ? get().lastProposal : null;
+      
+      // フィードバックモードでなければ、lastProposalをリセット
       if (!isFeedback) {
-          set({ lastProposal: null });
+        set((state) => {
+          state.lastProposal = null;
+          state.isFeedbackMode = false;
+        });
       }
 
-
       try {
+        // 履歴からローディングとシステムメッセージを除外
         const apiHistory = get()
           .history
           .filter(
@@ -145,8 +178,16 @@ export const useEditorStore = create<EditorState>()(
             content: typeof h.content === 'object' ? JSON.stringify(h.content) : h.content,
           }));
 
+        // APIに送信する履歴（最新のユーザーメッセージを除く）
         const historyForApi = apiHistory.length > 0 ? apiHistory.slice(0, -1) : [];
 
+        console.log("API呼び出し:", {
+          is_feedback: isFeedback,
+          previous_proposal: proposalForFeedback,
+          message: userMessageContent
+        });
+
+        // APIを呼び出し
         const response = await callEditApi({
           current_file_content: get().currentText,
           latest_user_content: userMessageContent,
@@ -156,10 +197,12 @@ export const useEditorStore = create<EditorState>()(
         });
 
         set((state) => {
+          // ローディングメッセージを削除
           state.history = state.history.filter(
               (msg: ConversationMessage) => msg.type !== MessageType.Loading
           );
 
+          // AIの応答メッセージを作成
           const aiResponseMessage: ConversationMessage = {
             id: nanoid(),
             role: MessageRole.Assistant,
@@ -167,18 +210,23 @@ export const useEditorStore = create<EditorState>()(
             type: MessageType.Normal,
           };
 
+          // レスポンスの種類に応じて処理
           if (response.status === 'success' || response.status === 'multiple_edits' || response.status === 'replace_all') {
              aiResponseMessage.type = MessageType.Proposal;
              state.lastProposal = response;
+             state.isFeedbackMode = false; // フィードバックが完了したのでフラグをリセット
           } else if (response.status === 'error') {
              aiResponseMessage.type = MessageType.Error;
              state.error = response.message || 'AIからの応答でエラーが発生しました。';
              state.lastProposal = null;
+             state.isFeedbackMode = false;
           } else if (response.status === 'clarification_needed' || response.status === 'conversation' || response.status === 'rejected') {
               aiResponseMessage.type = MessageType.Normal;
               state.lastProposal = null;
+              state.isFeedbackMode = false;
           }
 
+          // 履歴に応答を追加
           state.history.push(aiResponseMessage);
           state.isLoading = false;
         });
@@ -187,19 +235,26 @@ export const useEditorStore = create<EditorState>()(
         console.error("sendMessage error:", err);
         const errorMessage = err.message || 'メッセージの送信中にエラーが発生しました。';
         set((state) => {
+          // ローディングメッセージを削除
           state.history = state.history.filter(
               (msg: ConversationMessage) => msg.type !== MessageType.Loading
           );
+          
+          // エラーメッセージを追加
           state.history.push({
              id: nanoid(),
              role: MessageRole.System,
              content: `エラー: ${errorMessage}`,
              type: MessageType.Error,
           });
+          
+          // 状態をリセット
           state.isLoading = false;
           state.error = errorMessage;
           state.lastProposal = null;
+          state.isFeedbackMode = false;
         });
+        throw err; // エラーを再スローして呼び出し元で処理できるようにする
       }
     },
 
@@ -310,12 +365,18 @@ export const useEditorStore = create<EditorState>()(
             state.currentText = newText;
             state.lastProposal = null;
             state.error = null;
+            state.isFeedbackMode = false;
             state.history.push({
               id: nanoid(),
               role: MessageRole.System,
               content: appliedMessage,
               type: MessageType.SystemInfo,
             });
+          });
+          
+          // 適用成功のトースト通知
+          toast.success("編集を適用しました", {
+            description: appliedMessage,
           });
         }
 
@@ -336,6 +397,11 @@ export const useEditorStore = create<EditorState>()(
                 });
             }
          });
+         
+         // エラーのトースト通知
+         toast.error("編集の適用に失敗しました", {
+           description: errorMessage,
+         });
       }
     },
 
@@ -345,12 +411,18 @@ export const useEditorStore = create<EditorState>()(
       set((state) => {
         state.lastProposal = null;
         state.error = null;
+        state.isFeedbackMode = false;
         state.history.push({
           id: nanoid(),
           role: MessageRole.System,
           content: `提案 (${proposal.status}) を拒否しました。`,
           type: MessageType.SystemInfo,
         });
+      });
+      
+      // 拒否のトースト通知
+      toast.info("編集提案を拒否しました", {
+        description: "別の指示を入力できます",
       });
     },
   }))

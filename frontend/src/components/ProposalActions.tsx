@@ -15,7 +15,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -25,6 +25,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProposalActionsProps {
   proposal: AiResponse;
@@ -39,14 +40,34 @@ export function ProposalActions({ proposal, onFeedback, isMobile = false }: Prop
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isHovered, setIsHovered] = useState<string | null>(null);
 
+  // シートを開くときに呼び出す関数
+  const handleOpenFeedbackSheet = () => {
+    onFeedback(); // 編集ストアに現在の提案を記録
+    setIsSheetOpen(true);
+  };
+
+  // フィードバックの送信
   const handleSendFeedback = () => {
     if (feedbackText.trim()) {
       setIsSubmitting(true);
-      sendMessage(feedbackText, true).finally(() => {
-        setFeedbackText(""); 
-        setIsSubmitting(false);
-        setIsSheetOpen(false);
-      });
+      
+      // フィードバックとして送信
+      sendMessage(feedbackText, true)
+        .then(() => {
+          toast.success("フィードバックを送信しました", {
+            description: "AIが新しい提案を生成しています",
+          });
+        })
+        .catch((error) => {
+          toast.error("フィードバックの送信に失敗しました", {
+            description: error.message || "もう一度お試しください",
+          });
+        })
+        .finally(() => {
+          setFeedbackText(""); 
+          setIsSubmitting(false);
+          setIsSheetOpen(false);
+        });
     }
   };
 
@@ -151,7 +172,7 @@ export function ProposalActions({ proposal, onFeedback, isMobile = false }: Prop
               "feedback", 
               <MessageSquarePlus className="h-3.5 w-3.5 md:h-4 md:w-4" />,
               "フィードバック",
-              onFeedback,
+              handleOpenFeedbackSheet,
               "ghost",
               "hover:bg-primary/10 text-primary",
               "提案に対するフィードバックを送信"

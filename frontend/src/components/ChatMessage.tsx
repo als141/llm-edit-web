@@ -23,6 +23,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const startFeedback = useEditorStore(state => state.startFeedback);
   const history = useEditorStore(state => state.history);
   const lastProposal = useEditorStore(state => state.lastProposal);
+  const isFeedbackMode = useEditorStore(state => state.isFeedbackMode);
+  const feedbackMessageIds = useEditorStore(state => state.feedbackMessageIds);
+  const isUser = message.role === MessageRole.User;
+  // このメッセージがフィードバックかどうかを判定
+  const isFeedbackMessage = isUser && feedbackMessageIds.includes(message.id);
   const [isMobile, setIsMobile] = useState(false);
   const [timeString, setTimeString] = useState('');
   const [showIndicator, setShowIndicator] = useState(false);
@@ -61,7 +66,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
     }
   }, [message.role]);
   
-  const isUser = message.role === MessageRole.User;
   const isAssistant = message.role === MessageRole.Assistant;
   const isSystem = message.role === MessageRole.System;
   const isProposal = message.type === MessageType.Proposal;
@@ -166,14 +170,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
     return null;
   };
 
+  // 現在のメッセージがAIの最新の提案メッセージであるか確認
   const isLatestAssistantMessage = history.length > 0 && history[history.length - 1]?.id === message.id;
-  const showActions = isLatestAssistantMessage && isProposal && aiResponse && lastProposal?.status === aiResponse?.status;
+  
+  // 現在のメッセージがAIの提案メッセージで、なおかつlastProposalの状態が一致する場合にアクションボタンを表示
+  const showActions = isLatestAssistantMessage && 
+                      isProposal && 
+                      aiResponse && 
+                      lastProposal?.status === aiResponse?.status;
 
   // ユーザーメッセージのスタイル
   const userMessageStyle = cn(
     "relative max-w-[85%] rounded-2xl px-3 md:px-4 py-2 md:py-3",
-    "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground",
-    "border-none rounded-tr-sm shadow-md",
+    isFeedbackMessage 
+      ? "bg-gradient-to-br from-purple-500 to-violet-600 text-white border-2 border-purple-300 dark:border-purple-700 rounded-tr-sm shadow-md" 
+      : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none rounded-tr-sm shadow-md",
     "dark:shadow-primary/5"
   );
 
@@ -254,7 +265,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <motion.div
         className={cn(
           "flex items-start gap-2 md:gap-3 mb-3 md:mb-4", 
-          isUser ? 'justify-end' : ''
+          isUser ? 'justify-end' : '',
+          // フィードバックモードの場合、強調表示
+          isProposal && isFeedbackMode && lastProposal?.status === aiResponse?.status && "edit-highlight rounded-md p-2 -mx-2",
+          // フィードバックメッセージの場合、セクション全体を強調
+          isFeedbackMessage && "relative pl-2 pr-2"
         )}
         initial="hidden"
         animate="visible"
@@ -283,7 +298,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         <div className={isUser ? userMessageStyle : aiMessageStyle}>
-          {contentWrapper(renderContent())}
+          {/* フィードバックバッジをメッセージの上部に表示 */}
+        {isFeedbackMessage && (
+          <div className="absolute -top-3 left-3 z-10">
+            <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 text-[10px] px-2 py-0.5 rounded-full shadow-sm">
+              フィードバック
+            </Badge>
+          </div>
+        )}
+        {contentWrapper(renderContent())}
           
           {showActions && aiResponse && (
             <div className="mt-2 md:mt-3 pt-2 border-t border-border/50 dark:border-border/30">

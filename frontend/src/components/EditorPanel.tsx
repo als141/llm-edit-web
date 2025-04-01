@@ -104,12 +104,14 @@ export function EditorPanel() {
   return (
     <div className="h-full flex flex-col bg-background">
       <Tabs value={editorView} onValueChange={setEditorView} className="h-full flex flex-col">
-        {/* ヘッダー部分 - コンパクト化 */}
-        <div className="flex-none p-2 md:p-4 border-b bg-card shadow-sm z-10">
-          <div className="flex items-center justify-between">
+        {/* ヘッダー部分 - ChatPanelとスタイルを完全に統一 */}
+        <div className="flex-none h-14 md:h-16 px-3 py-2 md:px-4 md:py-3 border-b bg-card shadow-sm z-10">
+          <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              <h2 className="text-sm md:text-lg font-medium">テキストエディタ</h2>
+              <div className="h-5 w-5 md:h-6 md:w-6 text-primary">
+                <FileText className="h-5 w-5 md:h-6 md:w-6" />
+              </div>
+              <h2 className="text-sm md:text-base font-medium">テキストエディタ</h2>
             </div>
             <TabsList className="bg-muted/40 h-7 md:h-8">
               <TabsTrigger 

@@ -4,12 +4,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendHorizontal, Bot, Sparkles, FileText, Mic, Paperclip, Smile, Image, Trash2, AlertCircle } from 'lucide-react';
+import { SendHorizontal, Bot, Sparkles, FileText, ClipboardPaste, Smile, Image, Trash2, AlertCircle, Paperclip } from 'lucide-react';
 import { ChatMessage } from '@/components/ChatMessage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatPanelProps {
   onSelectEditor?: () => void; // モバイル表示でエディタタブに切り替えるためのコールバック
@@ -100,19 +110,22 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
     }
   }, [history]);
 
+  // 履歴削除の処理
+  const handleClearHistory = () => {
+    clearHistory();
+    setIsDeleteDialogOpen(false);
+  };
+
   return (
     <div className="h-full flex flex-col bg-background relative">
-      {/* ヘッダー部分 - デザイン改善 */}
-      <div className="flex-none px-3 md:px-4 py-2.5 md:py-3.5 border-b backdrop-blur-sm bg-card/80 shadow-sm z-10 sticky top-0">
-                  <div className="flex items-center justify-between">
+      {/* ヘッダー部分 - 高さを完全に統一 */}
+      <div className="flex-none h-14 md:h-16 px-3 py-2 md:px-4 md:py-3 border-b bg-card shadow-sm z-10 sticky top-0">
+        <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 md:h-9 md:w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-              <Bot className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+            <div className="h-5 w-5 md:h-6 md:w-6 text-primary">
+              <Bot className="h-5 w-5 md:h-6 md:w-6" />
             </div>
-            <div>
-              <h2 className="text-sm md:text-base font-medium">AIアシスタント</h2>
-              <p className="text-xs text-muted-foreground">{isLoading ? "入力中..." : "待機中"}</p>
-            </div>
+            <h2 className="text-sm md:text-base font-medium">AIアシスタント</h2>
           </div>
           
           <div className="flex items-center gap-2">
@@ -196,7 +209,7 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
         </div>
       </ScrollArea>
 
-      {/* 入力部分 - 大幅改善 */}
+      {/* 入力部分 - 音声入力ボタンの削除 */}
       <div className={cn(
         "flex-none border-t px-2 md:px-4 py-2 md:py-3 bg-card",
         "transition-all duration-300",
@@ -264,16 +277,6 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
             autoComplete="off"
           />
           
-          {/* 音声入力ボタン */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 md:h-9 md:w-9 rounded-full opacity-70 hover:opacity-100" 
-            disabled={isLoading}
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-          
           {/* 送信ボタン */}
           <Button 
             onClick={handleSend} 
@@ -293,6 +296,24 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
           Shift+Enter で改行 | Enter で送信
         </p>
       </div>
+
+      {/* 履歴削除の確認ダイアログ */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>チャット履歴を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この操作は取り消せません。すべてのチャット履歴が削除されます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
