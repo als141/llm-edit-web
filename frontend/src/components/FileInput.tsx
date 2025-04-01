@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Upload, FileText, ClipboardPaste, Save, FilePlus, File } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { toast } from "sonner";
@@ -27,8 +26,27 @@ export function FileInput() {
   const [textInput, setTextInput] = useState('');
   const [fileName, setFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // レスポンシブ対応
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // 初期チェック
+    checkScreenSize();
+    
+    // リサイズイベントリスナー
+    window.addEventListener("resize", checkScreenSize);
+    
+    return () => {
+      window.removeEventListener("resize", checkScreenSize);
+    };
+  }, []);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextInput(event.target.value);
@@ -72,11 +90,13 @@ export function FileInput() {
   };
 
   const handleConfirmText = () => {
-    setFileContent(textInput);
-    toast.success("テキスト入力確定", { 
-      description: `${textInput.length.toLocaleString()}文字のテキストを読み込みました`,
-      icon: <FileText className="h-5 w-5" />
-    });
+    if (textInput.trim()) {
+      setFileContent(textInput);
+      toast.success("テキスト入力確定", { 
+        description: `${textInput.length.toLocaleString()}文字のテキストを読み込みました`,
+        icon: <FileText className="h-5 w-5" />
+      });
+    }
   };
 
   const handlePaste = async () => {
@@ -87,6 +107,11 @@ export function FileInput() {
         description: "内容を確認して「確定」ボタンを押してください。",
         icon: <ClipboardPaste className="h-5 w-5" />
       });
+      
+      // テキストエリアにフォーカス
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
     } catch (err) {
       console.error('Failed to read clipboard contents: ', err);
       toast.error("ペースト失敗", { 
@@ -125,14 +150,14 @@ export function FileInput() {
 
   return (
     <Card className="shadow-sm" data-dragging={isDragging}>
-      <CardHeader className="py-3 px-4">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <FilePlus className="h-4 w-4 text-primary" />
+      <CardHeader className="py-2 px-3 md:py-3 md:px-4">
+        <CardTitle className="text-xs md:text-sm flex items-center gap-1.5 md:gap-2">
+          <FilePlus className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
           テキストを入力またはファイルを選択
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="px-4 py-0">
+      <CardContent className="px-2 md:px-4 py-0">
         <div
           ref={dropzoneRef}
           className={`rounded-md transition-all duration-300 ${
@@ -145,68 +170,110 @@ export function FileInput() {
           onDrop={handleDrop}
         >
           <Textarea
+            ref={textareaRef}
             placeholder="ここにテキストを入力またはファイルをドラッグ＆ドロップ..."
             value={textInput}
             onChange={handleTextChange}
-            rows={3}
-            className="resize-none border-none rounded-md bg-transparent focus-visible:ring-0 p-3"
+            rows={isMobile ? 4 : 3}
+            className="resize-none border-none rounded-md bg-transparent focus-visible:ring-0 p-2 md:p-3 text-xs md:text-sm"
           />
           
           {fileName && (
-            <div className="px-3 py-2 bg-muted/50 rounded-b-md text-xs flex items-center gap-2 border-t border-dashed border-border/50">
+            <div className="px-2 md:px-3 py-1 md:py-1.5 bg-muted/50 rounded-b-md text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border-t border-dashed border-border/50">
               <File className="h-3 w-3 text-muted-foreground" />
-              <span className="font-medium">{fileName}</span>
+              <span className="font-medium truncate">{fileName}</span>
             </div>
           )}
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between px-4 py-3 gap-2">
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleConfirmText} size="sm" disabled={!textInput.trim()}>
-                  <Save className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">テキストを確定</span>
-                  <span className="sm:hidden">確定</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>入力したテキストをエディタに反映します</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handlePaste} size="sm" variant="outline">
-                  <ClipboardPaste className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">ペースト</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>クリップボードからテキストを貼り付けます</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      <CardFooter className="flex flex-wrap md:flex-nowrap justify-between px-2 md:px-4 py-2 md:py-3 gap-2">
+        <div className="flex gap-2 w-full md:w-auto">
+          {isMobile ? (
+            // モバイル用のシンプルなボタン
+            <>
+              <Button 
+                onClick={handleConfirmText} 
+                size="sm" 
+                disabled={!textInput.trim()} 
+                className="flex-1 h-7 px-2 text-xs"
+              >
+                <Save className="h-3.5 w-3.5 mr-1" />
+                確定
+              </Button>
+              <Button 
+                onClick={handlePaste} 
+                size="sm" 
+                variant="outline"
+                className="flex-1 h-7 px-2 text-xs"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+                ペースト
+              </Button>
+            </>
+          ) : (
+            // デスクトップ用のツールチップ付きボタン
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleConfirmText} size="sm" disabled={!textInput.trim()}>
+                      <Save className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">テキストを確定</span>
+                      <span className="sm:hidden">確定</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>入力したテキストをエディタに反映します</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handlePaste} size="sm" variant="outline">
+                      <ClipboardPaste className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">ペースト</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>クリップボードからテキストを貼り付けます</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
         </div>
         
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={triggerFileInput} variant="secondary" size="sm">
-                <Upload className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">ファイルを選択</span>
-                <span className="sm:hidden">ファイル</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>テキストファイルを選択してアップロード</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {isMobile ? (
+          // モバイル用の単純なボタン
+          <Button 
+            onClick={triggerFileInput} 
+            variant="secondary" 
+            size="sm" 
+            className="w-full h-7 px-2 text-xs"
+          >
+            <Upload className="h-3.5 w-3.5 mr-1" />
+            ファイルを選択
+          </Button>
+        ) : (
+          // デスクトップ用のツールチップ付きボタン
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={triggerFileInput} variant="secondary" size="sm">
+                  <Upload className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">ファイルを選択</span>
+                  <span className="sm:hidden">ファイル</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>テキストファイルを選択してアップロード</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         
         <Input
           ref={fileInputRef}

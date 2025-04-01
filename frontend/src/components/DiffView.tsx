@@ -7,7 +7,7 @@ import { type AiResponse, type Edit } from '@/lib/types';
 import { useEditorStore } from '@/store/editorStore';
 import { useTheme } from "next-themes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { File, FileText, Code, Maximize2, ExternalLink } from 'lucide-react';
+import { File, FileText, Code, Maximize2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 
@@ -19,9 +19,10 @@ import {
 
 interface DiffViewProps {
   response: AiResponse;
+  isMobile?: boolean;
 }
 
-export function DiffView({ response }: DiffViewProps) {
+export function DiffView({ response, isMobile = false }: DiffViewProps) {
   const currentText = useEditorStore(state => state.currentText);
   const { resolvedTheme } = useTheme();
   const isDarkTheme = resolvedTheme === 'dark';
@@ -51,13 +52,13 @@ export function DiffView({ response }: DiffViewProps) {
         : 'rgba(34, 197, 94, 0.2)',
     },
     line: { 
-      padding: '4px 2px',
-      fontSize: '0.875rem', 
+      padding: '3px 2px',
+      fontSize: isMobile ? '0.75rem' : '0.875rem', 
     },
     gutter: { 
-      minWidth: '30px',
-      padding: '0 8px',
-      fontSize: '0.75rem',
+      minWidth: isMobile ? '24px' : '30px',
+      padding: isMobile ? '0 4px' : '0 8px',
+      fontSize: isMobile ? '0.65rem' : '0.75rem',
       textAlign: 'right' as const,
       background: isDarkTheme
         ? 'rgba(255, 255, 255, 0.03)'
@@ -94,20 +95,22 @@ export function DiffView({ response }: DiffViewProps) {
       <div className="w-full overflow-hidden rounded-md border">
         <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'diff' | 'code')} className="w-full">
           <div className="flex items-center justify-between bg-muted/50 px-2 py-1 border-b">
-            <TabsList className="bg-transparent h-7 p-0">
-              <TabsTrigger value="diff" className="h-7 px-2 text-xs">
-                <FileText className="h-3.5 w-3.5 mr-1" />差分表示
+            <TabsList className="bg-transparent h-6 md:h-7 p-0">
+              <TabsTrigger value="diff" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <FileText className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">差分</span>
               </TabsTrigger>
-              <TabsTrigger value="code" className="h-7 px-2 text-xs">
-                <Code className="h-3.5 w-3.5 mr-1" />コード表示
+              <TabsTrigger value="code" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <Code className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">コード</span>
               </TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">単一編集</div>
+              <div className="text-xs text-muted-foreground hidden md:inline">単一編集</div>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6">
-                    <Maximize2 className="h-3.5 w-3.5" />
+                  <Button size="icon" variant="ghost" className="h-5 w-5 md:h-6 md:w-6">
+                    <Maximize2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
                     <span className="sr-only">拡大表示</span>
                   </Button>
                 </DialogTrigger>
@@ -130,7 +133,7 @@ export function DiffView({ response }: DiffViewProps) {
                           <ReactDiffViewer
                             oldValue={response.old_string}
                             newValue={response.new_string}
-                            splitView={true}
+                            splitView={!isMobile}
                             compareMethod={DiffMethod.WORDS}
                             styles={modalStyles}
                             useDarkTheme={isDarkTheme}
@@ -139,7 +142,7 @@ export function DiffView({ response }: DiffViewProps) {
                       </TabsContent>
                       <TabsContent value="code" className="mt-2">
                         <div className="bg-muted/30 p-4 rounded-md overflow-auto">
-                          <pre className="whitespace-pre-wrap">{response.new_string}</pre>
+                          <pre className="whitespace-pre-wrap text-sm">{response.new_string}</pre>
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -150,11 +153,11 @@ export function DiffView({ response }: DiffViewProps) {
           </div>
           
           <TabsContent value="diff" className="m-0">
-            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+            <div className="overflow-x-auto max-h-[250px] md:max-h-[300px] overflow-y-auto">
               <ReactDiffViewer
                 oldValue={response.old_string}
                 newValue={response.new_string}
-                splitView={false}
+                splitView={!isMobile}
                 compareMethod={DiffMethod.WORDS}
                 styles={commonStyles}
                 useDarkTheme={isDarkTheme}
@@ -163,8 +166,8 @@ export function DiffView({ response }: DiffViewProps) {
           </TabsContent>
           
           <TabsContent value="code" className="m-0">
-            <div className="overflow-x-auto bg-muted/30 p-3 max-h-[300px] overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap">{response.new_string}</pre>
+            <div className="overflow-x-auto bg-muted/30 p-2 md:p-3 max-h-[250px] md:max-h-[300px] overflow-y-auto">
+              <pre className="text-xs md:text-sm whitespace-pre-wrap">{response.new_string}</pre>
             </div>
           </TabsContent>
         </Tabs>
@@ -177,20 +180,22 @@ export function DiffView({ response }: DiffViewProps) {
       <div className="space-y-2">
         <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'diff' | 'code')} className="w-full">
           <div className="flex items-center justify-between bg-muted/50 px-2 py-1 rounded-t-md border">
-            <TabsList className="bg-transparent h-7 p-0">
-              <TabsTrigger value="diff" className="h-7 px-2 text-xs">
-                <FileText className="h-3.5 w-3.5 mr-1" />差分表示
+            <TabsList className="bg-transparent h-6 md:h-7 p-0">
+              <TabsTrigger value="diff" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <FileText className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">差分</span>
               </TabsTrigger>
-              <TabsTrigger value="code" className="h-7 px-2 text-xs">
-                <Code className="h-3.5 w-3.5 mr-1" />コード表示
+              <TabsTrigger value="code" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <Code className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">コード</span>
               </TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">{response.edits.length}箇所の編集</div>
+              <div className="text-xs text-muted-foreground hidden md:inline">{response.edits.length}箇所の編集</div>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6">
-                    <Maximize2 className="h-3.5 w-3.5" />
+                  <Button size="icon" variant="ghost" className="h-5 w-5 md:h-6 md:w-6">
+                    <Maximize2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
                     <span className="sr-only">拡大表示</span>
                   </Button>
                 </DialogTrigger>
@@ -219,7 +224,7 @@ export function DiffView({ response }: DiffViewProps) {
                                 <ReactDiffViewer
                                   oldValue={edit.old_string}
                                   newValue={edit.new_string}
-                                  splitView={true}
+                                  splitView={!isMobile}
                                   compareMethod={DiffMethod.WORDS}
                                   styles={modalStyles}
                                   useDarkTheme={isDarkTheme}
@@ -249,7 +254,7 @@ export function DiffView({ response }: DiffViewProps) {
           </div>
           
           <TabsContent value="diff" className="m-0 border border-t-0 rounded-b-md overflow-hidden">
-            <div className="space-y-px max-h-[400px] overflow-y-auto">
+            <div className="space-y-px max-h-[300px] md:max-h-[400px] overflow-y-auto">
               {response.edits.map((edit: Edit, index: number) => (
                 <div key={index} className="border-b last:border-b-0">
                   <div className="text-xs font-medium bg-muted/50 px-2 py-1 text-muted-foreground border-b">
@@ -271,13 +276,13 @@ export function DiffView({ response }: DiffViewProps) {
           </TabsContent>
           
           <TabsContent value="code" className="m-0 border border-t-0 rounded-b-md">
-            <div className="bg-muted/30 p-3 max-h-[300px] overflow-auto">
+            <div className="bg-muted/30 p-2 md:p-3 max-h-[250px] md:max-h-[300px] overflow-auto">
               {response.edits.map((edit: Edit, index: number) => (
                 <div key={index} className="mb-3 last:mb-0">
                   <div className="text-xs font-medium mb-1 text-muted-foreground">
                     編集 {index + 1}:
                   </div>
-                  <pre className="text-sm whitespace-pre-wrap bg-muted p-2 rounded-md">{edit.new_string}</pre>
+                  <pre className="text-xs md:text-sm whitespace-pre-wrap bg-muted p-2 rounded-md">{edit.new_string}</pre>
                 </div>
               ))}
             </div>
@@ -292,20 +297,22 @@ export function DiffView({ response }: DiffViewProps) {
       <div className="w-full overflow-hidden rounded-md border">
         <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'diff' | 'code')} className="w-full">
           <div className="flex items-center justify-between bg-muted/50 px-2 py-1 border-b">
-            <TabsList className="bg-transparent h-7 p-0">
-              <TabsTrigger value="diff" className="h-7 px-2 text-xs">
-                <FileText className="h-3.5 w-3.5 mr-1" />差分表示
+            <TabsList className="bg-transparent h-6 md:h-7 p-0">
+              <TabsTrigger value="diff" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <FileText className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">差分</span>
               </TabsTrigger>
-              <TabsTrigger value="code" className="h-7 px-2 text-xs">
-                <Code className="h-3.5 w-3.5 mr-1" />コード表示
+              <TabsTrigger value="code" className="h-5 md:h-7 px-1.5 md:px-2 text-xs">
+                <Code className="h-3 w-3 md:h-3.5 md:w-3.5 mr-0.5 md:mr-1" />
+                <span className="hidden xs:inline">コード</span>
               </TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">全体置換</div>
+              <div className="text-xs text-muted-foreground hidden md:inline">全体置換</div>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6">
-                    <Maximize2 className="h-3.5 w-3.5" />
+                  <Button size="icon" variant="ghost" className="h-5 w-5 md:h-6 md:w-6">
+                    <Maximize2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
                     <span className="sr-only">拡大表示</span>
                   </Button>
                 </DialogTrigger>
@@ -328,7 +335,7 @@ export function DiffView({ response }: DiffViewProps) {
                           <ReactDiffViewer
                             oldValue={currentText}
                             newValue={response.content}
-                            splitView={true}
+                            splitView={!isMobile}
                             compareMethod={DiffMethod.WORDS}
                             styles={modalStyles}
                             useDarkTheme={isDarkTheme}
@@ -348,11 +355,11 @@ export function DiffView({ response }: DiffViewProps) {
           </div>
           
           <TabsContent value="diff" className="m-0">
-            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+            <div className="overflow-x-auto max-h-[300px] md:max-h-[400px] overflow-y-auto">
               <ReactDiffViewer
                 oldValue={currentText}
                 newValue={response.content}
-                splitView={true}
+                splitView={!isMobile}
                 compareMethod={DiffMethod.WORDS}
                 styles={commonStyles}
                 useDarkTheme={isDarkTheme}
@@ -361,8 +368,8 @@ export function DiffView({ response }: DiffViewProps) {
           </TabsContent>
           
           <TabsContent value="code" className="m-0">
-            <div className="bg-muted/30 p-3 max-h-[300px] overflow-auto">
-              <pre className="text-sm whitespace-pre-wrap">{response.content}</pre>
+            <div className="bg-muted/30 p-2 md:p-3 max-h-[250px] md:max-h-[300px] overflow-auto">
+              <pre className="text-xs md:text-sm whitespace-pre-wrap">{response.content}</pre>
             </div>
           </TabsContent>
         </Tabs>

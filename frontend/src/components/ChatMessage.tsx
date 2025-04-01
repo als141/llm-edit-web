@@ -10,6 +10,7 @@ import { ProposalActions } from './ProposalActions';
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface ChatMessageProps {
   message: ConversationMessage;
@@ -19,6 +20,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const startFeedback = useEditorStore(state => state.startFeedback);
   const history = useEditorStore(state => state.history);
   const lastProposal = useEditorStore(state => state.lastProposal);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // レスポンシブ対応
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // 初期チェック
+    checkScreenSize();
+    
+    // リサイズイベントリスナー
+    window.addEventListener("resize", checkScreenSize);
+    
+    return () => {
+      window.removeEventListener("resize", checkScreenSize);
+    };
+  }, []);
   
   const isUser = message.role === MessageRole.User;
   const isAssistant = message.role === MessageRole.Assistant;
@@ -34,30 +53,30 @@ export function ChatMessage({ message }: ChatMessageProps) {
   }
 
   const getAvatar = () => {
-    if (isUser) return <User className="h-5 w-5" />;
-    if (isAssistant) return <Bot className="h-5 w-5" />;
-    if (isSystemInfo && message.content.toString().includes('適用')) return <CheckCircle className="h-5 w-5 text-green-500" />;
-    if (isSystemInfo && message.content.toString().includes('拒否')) return <XCircle className="h-5 w-5 text-yellow-500" />;
-    if (isError) return <AlertTriangle className="h-5 w-5 text-red-500" />;
+    if (isUser) return <User className="h-4 w-4 md:h-5 md:w-5" />;
+    if (isAssistant) return <Bot className="h-4 w-4 md:h-5 md:w-5" />;
+    if (isSystemInfo && message.content.toString().includes('適用')) return <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />;
+    if (isSystemInfo && message.content.toString().includes('拒否')) return <XCircle className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />;
+    if (isError) return <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-red-500" />;
     if (isLoading) return (
-      <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+      <LoaderCircle className="h-4 w-4 md:h-5 md:w-5 animate-spin text-primary" />
     );
-    return <Info className="h-5 w-5 text-blue-500" />;
+    return <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-500" />;
   };
 
   const renderContent = () => {
     if (isLoading) {
       return (
         <div className="flex items-center space-x-2">
-          <div className="h-2 w-2 rounded-full bg-primary/30 animate-bounce [animation-delay:-0.3s]"></div>
-          <div className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]"></div>
-          <div className="h-2 w-2 rounded-full bg-primary/70 animate-bounce"></div>
+          <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-primary/30 animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-primary/70 animate-bounce"></div>
         </div>
       );
     }
     
     if (isError) {
-      return <p className="text-inherit">{message.content as string}</p>;
+      return <p className="text-xs md:text-sm text-inherit">{message.content as string}</p>;
     }
     
     if(isSystemInfo) {
@@ -66,6 +85,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          className="text-xs md:text-sm"
         >
           {message.content as string}
         </motion.p>
@@ -78,7 +98,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         case 'multiple_edits':
         case 'replace_all':
           return (
-            <div className="space-y-3 w-full">
+            <div className="space-y-2 md:space-y-3 w-full">
               <div className="flex items-center gap-2">
                 <div className="bg-primary/20 text-xs font-medium px-2 py-0.5 rounded-full text-primary-foreground">
                   {aiResponse.status === 'success' 
@@ -94,27 +114,27 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   </span>
                 )}
               </div>
-              <DiffView response={aiResponse} />
+              <DiffView response={aiResponse} isMobile={isMobile} />
             </div>
           );
         case 'clarification_needed':
         case 'conversation':
         case 'rejected':
           return (
-            <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+            <div className="prose prose-xs md:prose-sm dark:prose-invert max-w-none break-words">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {aiResponse.message || ''}
               </ReactMarkdown>
             </div>
           );
         case 'error':
-          return <p className="text-destructive">{aiResponse.message || '不明なAIエラー'}</p>;
+          return <p className="text-xs md:text-sm text-destructive">{aiResponse.message || '不明なAIエラー'}</p>;
         default:
           return <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">{JSON.stringify(aiResponse, null, 2)}</pre>;
       }
     } else if (typeof message.content === 'string') {
       return (
-        <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+        <div className="prose prose-xs md:prose-sm dark:prose-invert max-w-none break-words">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {message.content}
           </ReactMarkdown>
@@ -135,7 +155,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   return (
     <motion.div
-      className={cn("flex items-start gap-3", isUser ? 'justify-end' : '')}
+      className={cn("flex items-start gap-2 md:gap-3", isUser ? 'justify-end' : '')}
       initial="hidden"
       animate="visible"
       variants={messageVariants}
@@ -143,7 +163,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
     >
       {!isUser && (
         <Avatar className={cn(
-          "h-8 w-8 border flex-shrink-0 transition-all",
+          "h-7 w-7 md:h-8 md:w-8 border flex-shrink-0 transition-all",
           isLoading && "animate-pulse",
           isAssistant && "bg-primary/10 border-primary/30",
           isError && "bg-destructive/10 border-destructive/30",
@@ -162,8 +182,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
 
       <div className={cn(
-        "max-w-[85%] rounded-lg px-4 py-3", 
-        isLoading ? "py-2 h-10 flex items-center" : "", 
+        "max-w-[85%] rounded-lg px-3 md:px-4 py-2 md:py-3", 
+        isLoading ? "py-1.5 md:py-2 h-8 md:h-10 flex items-center" : "", 
         isUser 
           ? 'bg-primary/90 text-primary-foreground border border-primary/20 rounded-tr-none shadow-sm'
           : isError 
@@ -175,16 +195,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {renderContent()}
         
         {showActions && aiResponse && (
-          <div className="mt-3 pt-2 border-t border-border/50">
-            <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} />
+          <div className="mt-2 md:mt-3 pt-2 border-t border-border/50">
+            <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} isMobile={isMobile} />
           </div>
         )}
       </div>
 
       {isUser && (
-        <Avatar className="h-8 w-8 border border-primary/30 bg-primary/10 flex-shrink-0">
+        <Avatar className="h-7 w-7 md:h-8 md:w-8 border border-primary/30 bg-primary/10 flex-shrink-0">
           <AvatarFallback className="text-primary">
-            <User className="h-5 w-5" />
+            <User className="h-4 w-4 md:h-5 md:w-5" />
           </AvatarFallback>
         </Avatar>
       )}

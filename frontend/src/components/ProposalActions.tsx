@@ -21,9 +21,10 @@ import { motion } from "framer-motion";
 interface ProposalActionsProps {
   proposal: AiResponse;
   onFeedback: () => void;
+  isMobile?: boolean;
 }
 
-export function ProposalActions({ proposal, onFeedback }: ProposalActionsProps) {
+export function ProposalActions({ proposal, onFeedback, isMobile = false }: ProposalActionsProps) {
   const { applyEdit, rejectEdit, isLoading, sendMessage } = useEditorStore();
   const [feedbackText, setFeedbackText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,42 +50,43 @@ export function ProposalActions({ proposal, onFeedback }: ProposalActionsProps) 
 
   return (
     <motion.div 
-      className="flex flex-wrap gap-2"
+      className="flex flex-wrap gap-1.5 md:gap-2"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
       <Button 
         variant="default" 
-        size="sm" 
+        size={isMobile ? "sm" : "sm"} 
         onClick={applyEdit} 
         disabled={isLoading}
-        className="bg-green-600 hover:bg-green-700 text-white"
+        className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm h-7 md:h-8"
       >
-        <Check className="h-4 w-4 mr-1" />
-        適用する
+        <Check className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+        適用
       </Button>
       
       <Button 
         variant="outline" 
-        size="sm" 
+        size={isMobile ? "sm" : "sm"} 
         onClick={rejectEdit} 
         disabled={isLoading}
+        className="text-xs md:text-sm h-7 md:h-8"
       >
-        <X className="h-4 w-4 mr-1" />
-        拒否する
+        <X className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+        拒否
       </Button>
 
       <Sheet>
         <SheetTrigger asChild>
           <Button 
             variant="outline" 
-            size="sm" 
+            size={isMobile ? "sm" : "sm"} 
             onClick={onFeedback} 
             disabled={isLoading}
-            className="ml-auto"
+            className="ml-auto text-xs md:text-sm h-7 md:h-8"
           >
-            <MessageSquarePlus className="h-4 w-4 mr-1" />
+            <MessageSquarePlus className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
             フィードバック
           </Button>
         </SheetTrigger>

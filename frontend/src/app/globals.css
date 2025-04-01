@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* カスタムメディアクエリ（レスポンシブ対応）*/
+@custom-media --xs (min-width: 480px);
+@custom-media --sm (min-width: 640px);
+@custom-media --md (min-width: 768px);
+@custom-media --lg (min-width: 1024px);
+@custom-media --xl (min-width: 1280px);
+
 /* 基本カラー変数の定義 */
 :root {
   --radius: 0.625rem;
@@ -44,6 +51,18 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* 基本高さ変数 - フッターなしに修正 */
+  --header-height: 57px;
+  --main-height: calc(100vh - var(--header-height));
+  
+  /* タブ関連変数 */
+  --tab-height: 40px;
+  --mobile-input-height: 80px;
+  
+  /* コンテンツ領域計算用 */
+  --mobile-content-height: calc(var(--main-height) - var(--tab-height));
+  --mobile-chat-content: calc(var(--mobile-content-height) - var(--mobile-input-height));
 }
 
 /* ダークモードカラー */
@@ -148,6 +167,79 @@
 @utility edit-highlight {
   background-color: color-mix(in srgb, var(--primary) 10%, transparent);
   border-left: 2px solid var(--primary);
+}
+
+/* レスポンシブ用ユーティリティクラス */
+.hidden {
+  display: none;
+}
+
+@media (--xs) {
+  .xs\:inline {
+    display: inline;
+  }
+  
+  .xs\:block {
+    display: block;
+  }
+  
+  .xs\:flex {
+    display: flex;
+  }
+  
+  .hidden.xs\:inline, .hidden.xs\:block, .hidden.xs\:flex {
+    display: none;
+  }
+}
+
+/* フレックスボックス用ユーティリティ*/
+.flex-1 {
+  flex: 1;
+}
+
+/* テキスト関連ユーティリティ */
+.text-balance {
+  text-wrap: balance;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+}
+
+/* Markdown/プローズのレスポンシブ調整 */
+.prose-xs {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.prose-xs p {
+  margin-bottom: 0.5rem;
+}
+
+.prose-xs h1 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-xs h2 {
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-xs h3 {
+  font-size: 1rem;
+  margin-bottom: 0.375rem;
+}
+
+.prose-xs pre {
+  font-size: 0.7rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose-xs code {
+  font-size: 0.7rem;
+  padding: 0.125rem 0.25rem;
 }
 
 /* テーマ設定 */
@@ -272,38 +364,24 @@
   animation: gradient-shift 3s ease infinite;
 }
 
-/* カスタムスクロールバースタイル */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
 /* コンテンツ配置関連のユーティリティ */
 html, body {
   height: 100%;
   overflow: hidden;
+}
+
+/* スクロール問題修正 - コンテナの制御 */
+.chat-container {
+  position: relative;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain; /* オーバースクロールを防止 */
+}
+
+.editor-content {
+  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* オーバースクロールを防止 */
 }
 
 .min-h-dialog-content {
@@ -311,8 +389,130 @@ html, body {
   max-height: calc(80vh - 200px);
 }
 
-:root {
-  --header-height: 57px;
-  --footer-height: 37px;
-  --main-height: calc(100vh - var(--header-height) - var(--footer-height));
+/* モバイル向けの最適化 */
+@media (max-width: 767px) {
+  :root {
+    --header-height: 45px;  /* コンパクト化 */
+    --tab-height: 33px;     /* タブバーの高さ */
+    --mobile-input-height: 70px;  /* 入力エリアの高さ */
+  }
+  
+  /* モバイル向けのスクロールバー最適化 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  /* タブレイアウト最適化 */
+  .flex-grow {
+    flex-grow: 1;
+  }
+  
+  /* テキスト最適化 */
+  .text-xs {
+    font-size: 0.7rem;
+  }
+  
+  /* 余白最適化 */
+  .p-2 {
+    padding: 0.4rem;
+  }
+  
+  .gap-2 {
+    gap: 0.4rem;
+  }
+  
+  /* コンテナの高さ最適化 */
+  .mobile-content-container {
+    height: var(--mobile-content-height);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  
+  .mobile-chat-container {
+    height: var(--mobile-chat-content);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  
+  /* アニメーション最適化 */
+  .animate-in.fade-in-5 {
+    animation-duration: 200ms;
+  }
+  
+  /* ボタンサイズの最適化 */
+  .h-7 {
+    height: 1.6rem;
+  }
+  
+  /* カードヘッダーとフッターのコンパクト化 */
+  .card-header-mobile {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .card-footer-mobile {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  /* 固定ヘッダーのz-index管理 */
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  
+  /* モバイル向けにシャドウを強調して重なりを明確に */
+  .mobile-shadow {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* タッチ操作の最適化 */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  button.touch-friendly {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* モバイル向けにシャドウを強調して重なりを明確に（非モバイル） */
+.mobile-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* タブのトランジションをスムーズに */
+.tab-transition {
+  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+[data-state="inactive"].tab-transition {
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+}
+
+[data-state="active"].tab-transition {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* スクロール問題の防止 */
+.overflow-safe {
+  overscroll-behavior: contain;
+  position: relative;
+}
+
+/* 要素が重ならないようにするためのスペーサー */
+.bottom-spacer {
+  height: 1rem;
+}
+
+@media (max-width: 767px) {
+  .bottom-spacer {
+    height: 1.5rem;
+  }
 }
