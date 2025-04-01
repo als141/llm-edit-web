@@ -1,16 +1,19 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type ConversationMessage, MessageRole, MessageType, type AiResponse } from '@/lib/types';
-import { Bot, User, AlertTriangle, CheckCircle, XCircle, Info, LoaderCircle } from 'lucide-react';
+import { Bot, User, AlertTriangle, CheckCircle, XCircle, Info, LoaderCircle, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DiffView } from './DiffView';
 import { ProposalActions } from './ProposalActions';
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { format } from 'date-fns';
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ChatMessageProps {
   message: ConversationMessage;
@@ -21,6 +24,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const history = useEditorStore(state => state.history);
   const lastProposal = useEditorStore(state => state.lastProposal);
   const [isMobile, setIsMobile] = useState(false);
+  const [timeString, setTimeString] = useState('');
+  const [showIndicator, setShowIndicator] = useState(false);
   
   // レスポンシブ対応
   useEffect(() => {
@@ -38,6 +43,23 @@ export function ChatMessage({ message }: ChatMessageProps) {
       window.removeEventListener("resize", checkScreenSize);
     };
   }, []);
+
+  // 時間表示の設定
+  useEffect(() => {
+    setTimeString(format(new Date(), 'HH:mm'));
+  }, []);
+
+  // メッセージ送信後のアニメーション
+  useEffect(() => {
+    if (message.role === MessageRole.User) {
+      setShowIndicator(true);
+      const timer = setTimeout(() => {
+        setShowIndicator(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [message.role]);
   
   const isUser = message.role === MessageRole.User;
   const isAssistant = message.role === MessageRole.Assistant;
@@ -100,14 +122,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
           return (
             <div className="space-y-2 md:space-y-3 w-full">
               <div className="flex items-center gap-2">
-                <div className="bg-primary/20 text-xs font-medium px-2 py-0.5 rounded-full text-primary-foreground">
+                <Badge variant={aiResponse.status === 'success' ? 'default' : aiResponse.status === 'multiple_edits' ? 'secondary' : 'outline'} className="text-xs font-medium rounded-full">
                   {aiResponse.status === 'success' 
                     ? '単一編集'
                     : aiResponse.status === 'multiple_edits'
                       ? '複数編集'
                       : '全体置換'
                   }
-                </div>
+                </Badge>
                 {aiResponse.status === 'multiple_edits' && aiResponse.edits && (
                   <span className="text-xs text-muted-foreground">
                     {aiResponse.edits.length}箇所
@@ -147,67 +169,140 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isLatestAssistantMessage = history.length > 0 && history[history.length - 1]?.id === message.id;
   const showActions = isLatestAssistantMessage && isProposal && aiResponse && lastProposal?.status === aiResponse?.status;
 
-  // モーション設定
+  // ユーザーメッセージのスタイル
+  const userMessageStyle = cn(
+    "relative max-w-[85%] rounded-2xl px-3 md:px-4 py-2 md:py-3",
+    "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground",
+    "border-none rounded-tr-sm shadow-md",
+    "dark:shadow-primary/5"
+  );
+
+  // AIメッセージのスタイル
+  const aiMessageStyle = cn(
+    "max-w-[85%] rounded-2xl px-3 md:px-4 py-2 md:py-3", 
+    isLoading ? "py-1.5 md:py-2 h-8 md:h-10 flex items-center" : "", 
+    isError 
+      ? 'bg-destructive/10 border border-destructive/20 text-destructive rounded-tl-sm shadow-sm'
+      : isSystemInfo 
+        ? 'bg-transparent text-muted-foreground border-none px-0 py-1 italic text-xs' 
+        : 'bg-card/80 backdrop-blur-sm border border-border/30 rounded-tl-sm shadow-sm'
+  );
+
+  // アニメーション設定
   const messageVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+    hidden: { opacity: 0, y: 10, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1, 
+      transition: { 
+        duration: 0.3,
+        ease: "easeOut"
+      } 
+    },
+    exit: { 
+      opacity: 0, 
+      scale: 0.95, 
+      transition: { 
+        duration: 0.2,
+        ease: "easeIn"
+      } 
+    }
   };
 
-  return (
-    <motion.div
-      className={cn("flex items-start gap-2 md:gap-3", isUser ? 'justify-end' : '')}
-      initial="hidden"
-      animate="visible"
-      variants={messageVariants}
-      data-message-type={message.type}
-    >
-      {!isUser && (
-        <Avatar className={cn(
-          "h-7 w-7 md:h-8 md:w-8 border flex-shrink-0 transition-all",
-          isLoading && "animate-pulse",
-          isAssistant && "bg-primary/10 border-primary/30",
-          isError && "bg-destructive/10 border-destructive/30",
-          isSystemInfo && "bg-muted border-transparent"
-        )}>
-          <AvatarFallback className={cn(
-            "text-muted-foreground",
-            isAssistant && "text-primary",
-            isError && "text-destructive",
-            isSystemInfo && message.content.toString().includes('適用') && "text-green-500",
-            isSystemInfo && message.content.toString().includes('拒否') && "text-yellow-500"
-          )}>
-            {getAvatar()}
-          </AvatarFallback>
-        </Avatar>
-      )}
-
+  // セーフエリア (内容をラップする)
+  const contentWrapper = (children: React.ReactNode) => (
+    <div className="relative">
+      {children}
+      
+      {/* 時間表示 */}
       <div className={cn(
-        "max-w-[85%] rounded-lg px-3 md:px-4 py-2 md:py-3", 
-        isLoading ? "py-1.5 md:py-2 h-8 md:h-10 flex items-center" : "", 
-        isUser 
-          ? 'bg-primary/90 text-primary-foreground border border-primary/20 rounded-tr-none shadow-sm'
-          : isError 
-            ? 'bg-destructive/10 border border-destructive/20 text-destructive rounded-tl-none shadow-sm'
-            : isSystemInfo 
-              ? 'bg-transparent text-muted-foreground border-none px-0 py-1 italic text-xs' 
-              : 'bg-card border border-border/50 rounded-tl-none shadow-sm'
+        "text-[0.65rem] mt-1 opacity-70",
+        isUser ? "text-right mr-1" : "ml-1",
+        isSystemInfo && "hidden"
       )}>
-        {renderContent()}
-        
-        {showActions && aiResponse && (
-          <div className="mt-2 md:mt-3 pt-2 border-t border-border/50">
-            <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} isMobile={isMobile} />
+        {timeString}
+      </div>
+      
+      {/* ユーザーメッセージの既読表示 */}
+      {isUser && showIndicator && (
+        <motion.div 
+          initial={{ opacity: 0, x: -5 }} 
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0 }}
+          className="absolute -bottom-1 -right-1 text-primary-foreground"
+        >
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-primary/80 rounded-full p-0.5">
+                  <Check className="h-3 w-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                メッセージ送信済み
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </motion.div>
+      )}
+    </div>
+  );
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className={cn(
+          "flex items-start gap-2 md:gap-3 mb-3 md:mb-4", 
+          isUser ? 'justify-end' : ''
+        )}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        variants={messageVariants}
+        data-message-type={message.type}
+      >
+        {!isUser && (
+          <Avatar className={cn(
+            "h-7 w-7 md:h-8 md:w-8 border flex-shrink-0 transition-all",
+            isLoading && "animate-pulse",
+            isAssistant && "bg-primary/10 border-primary/30 ring-2 ring-primary/10",
+            isError && "bg-destructive/10 border-destructive/30",
+            isSystemInfo && "bg-muted border-transparent"
+          )}>
+            <AvatarFallback className={cn(
+              "text-muted-foreground",
+              isAssistant && "text-primary",
+              isError && "text-destructive",
+              isSystemInfo && message.content.toString().includes('適用') && "text-green-500",
+              isSystemInfo && message.content.toString().includes('拒否') && "text-yellow-500"
+            )}>
+              {getAvatar()}
+            </AvatarFallback>
+          </Avatar>
+        )}
+
+        <div className={isUser ? userMessageStyle : aiMessageStyle}>
+          {contentWrapper(renderContent())}
+          
+          {showActions && aiResponse && (
+            <div className="mt-2 md:mt-3 pt-2 border-t border-border/50 dark:border-border/30">
+              <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} isMobile={isMobile} />
+            </div>
+          )}
+        </div>
+
+        {isUser && (
+          <div className="relative">
+            <Avatar className="h-7 w-7 md:h-8 md:w-8 border-2 border-primary/30 bg-primary/10 flex-shrink-0 shadow-sm">
+              <AvatarImage src="/avatar-placeholder.png" alt="User Avatar" className="object-cover" />
+              <AvatarFallback className="text-primary bg-primary/15">
+                <User className="h-4 w-4 md:h-5 md:w-5" />
+              </AvatarFallback>
+            </Avatar>
           </div>
         )}
-      </div>
-
-      {isUser && (
-        <Avatar className="h-7 w-7 md:h-8 md:w-8 border border-primary/30 bg-primary/10 flex-shrink-0">
-          <AvatarFallback className="text-primary">
-            <User className="h-4 w-4 md:h-5 md:w-5" />
-          </AvatarFallback>
-        </Avatar>
-      )}
-    </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

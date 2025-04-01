@@ -3,14 +3,29 @@
 import { FileInput } from "@/components/FileInput";
 import { useEditorStore } from "@/store/editorStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CodeIcon, FileText, Type } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { CodeIcon, FileText, Type, Pencil, Save, XCircle } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function EditorPanel() {
-  const currentText = useEditorStore(state => state.currentText);
-  const fileContent = useEditorStore(state => state.fileContent);
+  const { 
+    currentText, 
+    fileContent, 
+    isEditing, 
+    startEditing, 
+    cancelEditing, 
+    saveEditing,
+    updateCurrentText 
+  } = useEditorStore((state) => state);
+
   const [isMobile, setIsMobile] = useState(false);
+  const [editedText, setEditedText] = useState(currentText);
   const contentRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editorView, setEditorView] = useState(fileContent ? "editor" : "input");
   
   // レスポンシブ対応: モバイルかどうかを検出
@@ -30,6 +45,24 @@ export function EditorPanel() {
     };
   }, []);
 
+  // 編集状態が変わった時に編集テキストを更新
+  useEffect(() => {
+    if (isEditing) {
+      setEditedText(currentText);
+      // 編集モードになったらテキストエリアにフォーカス
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [isEditing, currentText]);
+
+  // 現在のテキストが変わったら編集テキストも更新（編集モードでない時）
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedText(currentText);
+    }
+  }, [currentText, isEditing]);
+
   // ファイルコンテンツが更新されたらエディタビューに切り替え
   useEffect(() => {
     if (fileContent) {
@@ -44,6 +77,28 @@ export function EditorPanel() {
         ? 'calc(100vh - 150px)' // フッターなしのモバイル向け（ヘッダー+タブ+入力フォームの高さを考慮）
         : 'calc(100vh - 160px)' // フッターなしのデスクトップ向け
     };
+  };
+
+  // 編集の保存
+  const handleSaveEditing = () => {
+    if (editedText !== currentText) {
+      saveEditing(editedText);
+      toast.success("テキストを保存しました", {
+        description: "手動編集の内容が保存されました",
+        icon: <Save className="h-5 w-5" />
+      });
+    } else {
+      cancelEditing();
+    }
+  };
+
+  // 編集のキャンセル
+  const handleCancelEditing = () => {
+    cancelEditing();
+    setEditedText(currentText);
+    toast.info("編集をキャンセルしました", {
+      icon: <XCircle className="h-5 w-5" />
+    });
   };
 
   return (
@@ -97,9 +152,24 @@ export function EditorPanel() {
             <div className="border rounded-md shadow-sm bg-card">
               <div className="py-1.5 px-3 md:py-2 md:px-4 border-b flex items-center justify-between">
                 <h3 className="text-xs md:text-sm font-medium">現在のテキスト</h3>
-                <span className="text-[10px] md:text-xs text-muted-foreground">
-                  {currentText.length > 0 ? `${currentText.length.toLocaleString()} 文字` : ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] md:text-xs text-muted-foreground">
+                    {currentText.length > 0 ? `${currentText.length.toLocaleString()} 文字` : ''}
+                  </span>
+                  
+                  {/* 編集ボタン */}
+                  {!isEditing && currentText && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 rounded-full"
+                      onClick={startEditing}
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="sr-only">編集</span>
+                    </Button>
+                  )}
+                </div>
               </div>
               
               <div style={getMaxHeightStyle()} className="overflow-y-auto">
@@ -113,9 +183,61 @@ export function EditorPanel() {
                   </div>
                 ) : (
                   <div className="p-2 md:p-4">
-                    <pre className="text-xs md:text-sm whitespace-pre-wrap break-words font-mono bg-muted/30 p-2 md:p-4 rounded-md">
-                      {currentText}
-                    </pre>
+                    <AnimatePresence mode="wait">
+                      {isEditing ? (
+                        <motion.div
+                          key="editing"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="space-y-3"
+                        >
+                          <Textarea
+                            ref={textareaRef}
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            className="min-h-[200px] font-mono text-xs md:text-sm border-primary/20 resize-y"
+                            placeholder="テキストを編集..."
+                          />
+                          
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEditing}
+                              className="text-xs md:text-sm h-8"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                              キャンセル
+                            </Button>
+                            
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={handleSaveEditing}
+                              className="text-xs md:text-sm h-8"
+                              disabled={editedText === currentText}
+                            >
+                              <Save className="h-3.5 w-3.5 mr-1.5" />
+                              保存
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.pre
+                          key="preview"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className={cn(
+                            "text-xs md:text-sm whitespace-pre-wrap break-words font-mono",
+                            "bg-muted/30 p-2 md:p-4 rounded-md"
+                          )}
+                        >
+                          {currentText}
+                        </motion.pre>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )}
               </div>

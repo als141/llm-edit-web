@@ -18,13 +18,24 @@ interface EditorState {
   isLoading: boolean;
   error: string | null;
   lastProposal: AiResponse | null;
+  isEditing: boolean;
 
+  // 既存の関数
   setFileContent: (content: string) => void;
   sendMessage: (message: string, isFeedback?: boolean) => Promise<void>;
   applyEdit: () => void;
   rejectEdit: () => void;
   startFeedback: (proposal: AiResponse) => void;
   clearError: () => void;
+  
+  // 新機能: チャット履歴削除
+  clearHistory: () => void;
+  
+  // 新機能: テキスト直接編集
+  startEditing: () => void;
+  cancelEditing: () => void;
+  saveEditing: (newText: string) => void;
+  updateCurrentText: (newText: string) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -35,6 +46,7 @@ export const useEditorStore = create<EditorState>()(
     isLoading: false,
     error: null,
     lastProposal: null,
+    isEditing: false,
 
     setFileContent: (content) => {
       set((state) => {
@@ -43,6 +55,7 @@ export const useEditorStore = create<EditorState>()(
         state.history = [];
         state.lastProposal = null;
         state.error = null;
+        state.isEditing = false;
       });
     },
 
@@ -52,6 +65,43 @@ export const useEditorStore = create<EditorState>()(
 
     startFeedback: (proposal) => {
       set({ lastProposal: proposal });
+    },
+
+    // 新機能: チャット履歴の削除
+    clearHistory: () => {
+      set((state) => {
+        state.history = [];
+        state.lastProposal = null;
+        state.error = null;
+      });
+    },
+    
+    // 新機能: テキスト直接編集
+    startEditing: () => {
+      set({ isEditing: true });
+    },
+    
+    cancelEditing: () => {
+      set({ isEditing: false });
+    },
+    
+    saveEditing: (newText) => {
+      set((state) => {
+        state.currentText = newText;
+        state.isEditing = false;
+        
+        // 編集完了のシステムメッセージを追加
+        state.history.push({
+          id: nanoid(),
+          role: MessageRole.System,
+          content: "テキストを手動で編集しました。",
+          type: MessageType.SystemInfo,
+        });
+      });
+    },
+    
+    updateCurrentText: (newText) => {
+      set({ currentText: newText });
     },
 
     sendMessage: async (message, isFeedback = false) => {
@@ -274,7 +324,6 @@ export const useEditorStore = create<EditorState>()(
          const errorMessage = err.message || '編集の適用中にエラーが発生しました。';
          set((state) => {
            state.error = errorMessage;
-           // ↓↓↓ ここで h に型注釈を追加 ↓↓↓
            const existingErrorIndex = state.history.findIndex((h: ConversationMessage) =>
                h.type === MessageType.Error && typeof h.content === 'string' && h.content.startsWith('適用エラー:')
            );
