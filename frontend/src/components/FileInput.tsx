@@ -5,18 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, ClipboardPaste } from 'lucide-react';
+import { Upload, FileText, ClipboardPaste, Save, FilePlus, File } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
-// ↓↓↓ sonnerからtoast関数をインポート ↓↓↓
 import { toast } from "sonner";
+import { 
+  Card, 
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function FileInput() {
   const { setFileContent } = useEditorStore();
   const [textInput, setTextInput] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
-  // ↓↓↓ useToast は削除 ↓↓↓
-  // const { toast } = useToast();
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextInput(event.target.value);
@@ -25,12 +37,12 @@ export function FileInput() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setFileName(file.name);
       readFile(file);
     }
-     // 同じファイルを選択した場合も change イベントを発火させるため value をクリア
-     if (event.target) {
-        event.target.value = '';
-     }
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const readFile = (file: File) => {
@@ -38,114 +50,173 @@ export function FileInput() {
     reader.onload = (e) => {
       const content = e.target?.result as string;
       setFileContent(content);
-       setTextInput(content);
-       // ↓↓↓ sonnerのtoast関数を使用 ↓↓↓
-       toast.success("ファイル読み込み完了", { description: file.name });
+      setTextInput(content);
+      toast.success("ファイル読み込み完了", { 
+        description: `${file.name} (${formatFileSize(file.size)})`,
+        icon: <File className="h-5 w-5" />
+      });
     };
     reader.onerror = (e) => {
-        console.error("File reading error:", e);
-        // ↓↓↓ sonnerのtoast関数を使用 ↓↓↓
-        toast.error("ファイル読み込みエラー", { description: "ファイルの読み込み中にエラーが発生しました。" });
+      console.error("File reading error:", e);
+      toast.error("ファイル読み込みエラー", { 
+        description: "ファイルの読み込み中にエラーが発生しました。" 
+      });
     };
     reader.readAsText(file, 'UTF-8');
   };
 
-  const handleConfirmText = () => {
-    setFileContent(textInput);
-     // ↓↓↓ sonnerのtoast関数を使用 ↓↓↓
-     toast.success("テキスト入力確定", { description: `約${textInput.length}文字` });
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-   const handlePaste = async () => {
-     try {
-       const text = await navigator.clipboard.readText();
-       setTextInput(text);
-       // ↓↓↓ sonnerのtoast関数を使用 ↓↓↓
-       toast.info("クリップボードからテキストをペーストしました。", {
-           description: "内容を確認して「確定」ボタンを押してください。",
-       });
-     } catch (err) {
-       console.error('Failed to read clipboard contents: ', err);
-       // ↓↓↓ sonnerのtoast関数を使用 ↓↓↓
-       toast.error("ペースト失敗", { description: "クリップボードからの読み取りに失敗しました。" });
-     }
-   };
+  const handleConfirmText = () => {
+    setFileContent(textInput);
+    toast.success("テキスト入力確定", { 
+      description: `${textInput.length.toLocaleString()}文字のテキストを読み込みました`,
+      icon: <FileText className="h-5 w-5" />
+    });
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setTextInput(text);
+      toast.info("クリップボードからテキストをペースト", {
+        description: "内容を確認して「確定」ボタンを押してください。",
+        icon: <ClipboardPaste className="h-5 w-5" />
+      });
+    } catch (err) {
+      console.error('Failed to read clipboard contents: ', err);
+      toast.error("ペースト失敗", { 
+        description: "クリップボードからの読み取りに失敗しました。" 
+      });
+    }
+  };
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (dropzoneRef.current) {
-        dropzoneRef.current.classList.add('border-primary', 'bg-primary/10'); // スタイル変更
-    }
+    setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-     if (dropzoneRef.current) {
-        dropzoneRef.current.classList.remove('border-primary', 'bg-primary/10');
-    }
+    setIsDragging(false);
   }, []);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-     if (dropzoneRef.current) {
-        dropzoneRef.current.classList.remove('border-primary', 'bg-primary/10');
-    }
+    setIsDragging(false);
+    
     const files = event.dataTransfer.files;
     if (files && files.length > 0) {
+      setFileName(files[0].name);
       readFile(files[0]);
     }
-  // readFileが外部で定義されている場合、依存関係に含める
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setFileContent]); // readFile内でsetFileContentを使っているので依存関係に追加
+  }, []);
 
   const triggerFileInput = () => {
-      fileInputRef.current?.click();
+    fileInputRef.current?.click();
   }
 
   return (
-    <div
-        ref={dropzoneRef}
-        className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 space-y-3 bg-muted/20 transition-colors"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-    >
-      {/* <Label htmlFor="text-input-area">テキスト入力 または ファイル選択/ドロップ</Label> */}
-      <div className="flex flex-col md:flex-row items-start space-y-2 md:space-y-0 md:space-x-2">
-        <Textarea
-          id="text-input-area"
-          placeholder="ここにテキストを入力またはペースト..."
-          value={textInput}
-          onChange={handleTextChange}
-          rows={4} // 少し高さを確保
-          className="flex-grow bg-background shadow-sm"
-        />
-        <div className="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1 w-full md:w-auto">
-            <Button onClick={handleConfirmText} size="sm" className="flex-grow md:flex-grow-0 md:w-[100px]" disabled={!textInput}>
-              <FileText className="h-4 w-4 mr-1" /> 確定
-            </Button>
-            <Button onClick={handlePaste} size="sm" variant="outline" className="flex-grow md:flex-grow-0 md:w-[100px]">
-                <ClipboardPaste className="h-4 w-4 mr-1" /> ペースト
-            </Button>
+    <Card className="shadow-sm" data-dragging={isDragging}>
+      <CardHeader className="py-3 px-4">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <FilePlus className="h-4 w-4 text-primary" />
+          テキストを入力またはファイルを選択
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="px-4 py-0">
+        <div
+          ref={dropzoneRef}
+          className={`rounded-md transition-all duration-300 ${
+            isDragging 
+              ? 'bg-primary/10 border-2 border-dashed border-primary' 
+              : 'border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <Textarea
+            placeholder="ここにテキストを入力またはファイルをドラッグ＆ドロップ..."
+            value={textInput}
+            onChange={handleTextChange}
+            rows={3}
+            className="resize-none border-none rounded-md bg-transparent focus-visible:ring-0 p-3"
+          />
+          
+          {fileName && (
+            <div className="px-3 py-2 bg-muted/50 rounded-b-md text-xs flex items-center gap-2 border-t border-dashed border-border/50">
+              <File className="h-3 w-3 text-muted-foreground" />
+              <span className="font-medium">{fileName}</span>
+            </div>
+          )}
         </div>
-      </div>
-       {/* <div className="text-center text-sm text-muted-foreground">または</div> */}
-       <Button onClick={triggerFileInput} variant="outline" className="w-full">
-          <Upload className="h-4 w-4 mr-2" />
-          ファイルを選択 または ドラッグ＆ドロップ (.txt, .md など)
-       </Button>
-       <Input
+      </CardContent>
+      
+      <CardFooter className="flex justify-between px-4 py-3 gap-2">
+        <div className="flex gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleConfirmText} size="sm" disabled={!textInput.trim()}>
+                  <Save className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">テキストを確定</span>
+                  <span className="sm:hidden">確定</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>入力したテキストをエディタに反映します</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handlePaste} size="sm" variant="outline">
+                  <ClipboardPaste className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">ペースト</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>クリップボードからテキストを貼り付けます</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={triggerFileInput} variant="secondary" size="sm">
+                <Upload className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">ファイルを選択</span>
+                <span className="sm:hidden">ファイル</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>テキストファイルを選択してアップロード</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <Input
           ref={fileInputRef}
           id="file-upload"
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".txt,.md,.json,.py,.js,.ts,.html,.css,text/plain,application/json" // 受け付けるファイルタイプ
+          accept=".txt,.md,.json,.py,.js,.ts,.html,.css,text/plain,application/json"
         />
-      {/* <p className="text-center text-xs text-muted-foreground">ファイルをここにドラッグ＆ドロップすることもできます。</p> */}
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

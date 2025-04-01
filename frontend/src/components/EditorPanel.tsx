@@ -1,50 +1,92 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { FileInput } from "@/components/FileInput"; // FileInputコンポーネントを別途作成
+import { FileInput } from "@/components/FileInput";
 import { useEditorStore } from "@/store/editorStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CodeIcon, FileText, Type } from "lucide-react";
 
 export function EditorPanel() {
-  // 個別のセレクタを使用
   const currentText = useEditorStore(state => state.currentText);
   const fileContent = useEditorStore(state => state.fileContent);
 
-  // Textareaは読み取り専用とし、編集はAI経由のみとする
-  // または、編集可能にして、変更があれば差分を明示するなど、仕様による
-
   return (
-    <div className="flex flex-col h-full p-4 space-y-4">
-       <h2 className="text-lg font-semibold">エディタ</h2>
-      <FileInput />
-      <Card className="flex-grow flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">現在のテキスト</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-grow p-0 overflow-hidden">
-           {/* テキストエリアをCardの高さに追従させる */}
-          <ScrollArea className="h-full p-4 pt-0">
-              {/* 初期状態またはファイル未選択時はプレースホルダー表示 */}
-              {fileContent === '' ? (
-                  <div className="text-muted-foreground h-full flex items-center justify-center">
-                      左下のエリアからテキストを入力またはファイルをアップロードしてください。
-                  </div>
-              ) : (
-                  <pre className="text-sm whitespace-pre-wrap break-words">
+    <Card className="flex flex-col h-full rounded-none border-none shadow-none">
+      <CardHeader className="px-4 pb-0 pt-4">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          テキストエディタ
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="flex flex-col h-full p-4 pt-2">
+        <Tabs defaultValue="editor" className="flex flex-col h-full">
+          <TabsList className="mb-2 self-start">
+            <TabsTrigger value="editor" className="flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              <span>エディタ</span>
+            </TabsTrigger>
+            <TabsTrigger value="raw" className="flex items-center gap-2">
+              <CodeIcon className="h-4 w-4" />
+              <span>Raw</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="editor" className="flex-grow flex flex-col space-y-4 overflow-hidden mt-0">
+            <FileInput />
+            
+            <Card className="flex-grow flex flex-col shadow-sm">
+              <CardHeader className="py-2 px-4">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span>現在のテキスト</span>
+                  <span className="text-xs text-muted-foreground">
+                    {currentText.length > 0 ? `${currentText.length.toLocaleString()} 文字` : ''}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-grow p-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  {fileContent === '' ? (
+                    <div className="text-muted-foreground h-full flex flex-col items-center justify-center p-8">
+                      <FileText className="h-12 w-12 mb-4 text-muted-foreground/25" />
+                      <p className="text-center max-w-md">
+                        テキストを入力またはファイルをアップロードしてください。
+                        AIが編集の手助けをします。
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4">
+                      <pre className="text-sm whitespace-pre-wrap break-words font-mono bg-muted/30 p-4 rounded-md">
+                        {currentText}
+                      </pre>
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="raw" className="flex-grow flex flex-col overflow-hidden space-y-4 mt-0">
+            <Card className="flex-grow shadow-sm">
+              <CardContent className="p-0 h-full">
+                <ScrollArea className="h-full">
+                  {fileContent === '' ? (
+                    <div className="text-muted-foreground h-full flex flex-col items-center justify-center p-8">
+                      <CodeIcon className="h-12 w-12 mb-4 text-muted-foreground/25" />
+                      <p className="text-center">テキストが入力されていません</p>
+                    </div>
+                  ) : (
+                    <pre className="p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto">
                       {currentText}
-                  </pre>
-                  // Textareaを使う場合:
-                  // <Textarea
-                  //   value={currentText}
-                  //   readOnly // 基本的に読み取り専用
-                  //   className="h-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 text-sm"
-                  //   placeholder="テキストを入力またはファイルをアップロードしてください"
-                  // />
-              )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
+                    </pre>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }

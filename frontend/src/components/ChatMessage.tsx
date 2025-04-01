@@ -9,13 +9,13 @@ import { DiffView } from './DiffView';
 import { ProposalActions } from './ProposalActions';
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ChatMessageProps {
   message: ConversationMessage;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  // 個別のセレクタを使用
   const startFeedback = useEditorStore(state => state.startFeedback);
   const history = useEditorStore(state => state.history);
   const lastProposal = useEditorStore(state => state.lastProposal);
@@ -39,20 +39,37 @@ export function ChatMessage({ message }: ChatMessageProps) {
     if (isSystemInfo && message.content.toString().includes('適用')) return <CheckCircle className="h-5 w-5 text-green-500" />;
     if (isSystemInfo && message.content.toString().includes('拒否')) return <XCircle className="h-5 w-5 text-yellow-500" />;
     if (isError) return <AlertTriangle className="h-5 w-5 text-red-500" />;
-    if (isLoading) return <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground"/>;
+    if (isLoading) return (
+      <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+    );
     return <Info className="h-5 w-5 text-blue-500" />;
   };
 
   const renderContent = () => {
     if (isLoading) {
-      return null;
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="h-2 w-2 rounded-full bg-primary/30 animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="h-2 w-2 rounded-full bg-primary/70 animate-bounce"></div>
+        </div>
+      );
     }
+    
     if (isError) {
-         return <p className="text-inherit">{message.content as string}</p>; // 親要素の色を継承
+      return <p className="text-inherit">{message.content as string}</p>;
     }
+    
     if(isSystemInfo) {
-        // proseクラスが適用されるとitalicなどが効きにくいため、直接スタイル指定は避ける
-        return <p>{message.content as string}</p>;
+      return (
+        <motion.p
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {message.content as string}
+        </motion.p>
+      );
     }
 
     if (aiResponse) {
@@ -61,42 +78,83 @@ export function ChatMessage({ message }: ChatMessageProps) {
         case 'multiple_edits':
         case 'replace_all':
           return (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">編集提案 ({aiResponse.status}):</p>
+            <div className="space-y-3 w-full">
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/20 text-xs font-medium px-2 py-0.5 rounded-full text-primary-foreground">
+                  {aiResponse.status === 'success' 
+                    ? '単一編集'
+                    : aiResponse.status === 'multiple_edits'
+                      ? '複数編集'
+                      : '全体置換'
+                  }
+                </div>
+                {aiResponse.status === 'multiple_edits' && aiResponse.edits && (
+                  <span className="text-xs text-muted-foreground">
+                    {aiResponse.edits.length}箇所
+                  </span>
+                )}
+              </div>
               <DiffView response={aiResponse} />
             </div>
           );
         case 'clarification_needed':
         case 'conversation':
         case 'rejected':
-           // ↓↓↓ className を削除 ↓↓↓
-           return <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiResponse.message || ''}</ReactMarkdown>;
+          return (
+            <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {aiResponse.message || ''}
+              </ReactMarkdown>
+            </div>
+          );
         case 'error':
-           return <p className="text-inherit">{aiResponse.message || '不明なAIエラー'}</p>; // 親要素の色を継承
+          return <p className="text-destructive">{aiResponse.message || '不明なAIエラー'}</p>;
         default:
           return <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">{JSON.stringify(aiResponse, null, 2)}</pre>;
       }
     } else if (typeof message.content === 'string') {
-       // ↓↓↓ className を削除 ↓↓↓
-       return <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>;
+      return (
+        <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
+      );
     }
     return null;
   };
 
-   const isLatestAssistantMessage = history.length > 0 && history[history.length - 1]?.id === message.id;
-   // 提案メッセージであり、かつそれがストア内の最新の提案と一致する場合にアクションを表示
-   const showActions = isLatestAssistantMessage && isProposal && aiResponse && lastProposal?.status === aiResponse?.status;
+  const isLatestAssistantMessage = history.length > 0 && history[history.length - 1]?.id === message.id;
+  const showActions = isLatestAssistantMessage && isProposal && aiResponse && lastProposal?.status === aiResponse?.status;
+
+  // モーション設定
+  const messageVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
 
   return (
-    <div className={cn("flex items-start space-x-3", isUser ? 'justify-end' : '')}>
+    <motion.div
+      className={cn("flex items-start gap-3", isUser ? 'justify-end' : '')}
+      initial="hidden"
+      animate="visible"
+      variants={messageVariants}
+      data-message-type={message.type}
+    >
       {!isUser && (
-        <Avatar className="h-8 w-8 flex-shrink-0">
+        <Avatar className={cn(
+          "h-8 w-8 border flex-shrink-0 transition-all",
+          isLoading && "animate-pulse",
+          isAssistant && "bg-primary/10 border-primary/30",
+          isError && "bg-destructive/10 border-destructive/30",
+          isSystemInfo && "bg-muted border-transparent"
+        )}>
           <AvatarFallback className={cn(
-              "bg-transparent text-muted-foreground",
-              isAssistant && "text-primary",
-              isError && "text-destructive",
-              isSystemInfo && message.content.toString().includes('適用') && "text-green-500",
-              isSystemInfo && message.content.toString().includes('拒否') && "text-yellow-500",
+            "text-muted-foreground",
+            isAssistant && "text-primary",
+            isError && "text-destructive",
+            isSystemInfo && message.content.toString().includes('適用') && "text-green-500",
+            isSystemInfo && message.content.toString().includes('拒否') && "text-yellow-500"
           )}>
             {getAvatar()}
           </AvatarFallback>
@@ -104,30 +162,32 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
 
       <div className={cn(
-        "max-w-[80%] rounded-lg px-4 py-3", // proseクラスを削除 (Markdownコンポーネント内で適用される)
-        isLoading ? "py-1" : "", // ローディング中は少し高さを抑える
-        isUser ? 'bg-primary text-primary-foreground'
-      : isError ? 'bg-destructive/10 border border-destructive/20 text-destructive'
-      : isSystemInfo ? 'bg-transparent text-muted-foreground border-none px-0 py-1 italic text-xs' // システム情報はより目立たなく
-      : 'bg-muted border' // Assistant or System (normal)
+        "max-w-[85%] rounded-lg px-4 py-3", 
+        isLoading ? "py-2 h-10 flex items-center" : "", 
+        isUser 
+          ? 'bg-primary/90 text-primary-foreground border border-primary/20 rounded-tr-none shadow-sm'
+          : isError 
+            ? 'bg-destructive/10 border border-destructive/20 text-destructive rounded-tl-none shadow-sm'
+            : isSystemInfo 
+              ? 'bg-transparent text-muted-foreground border-none px-0 py-1 italic text-xs' 
+              : 'bg-card border border-border/50 rounded-tl-none shadow-sm'
       )}>
-        {/* Markdown表示用にdivで囲み、proseクラスを適用 */}
-        <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-          {renderContent()}
-        </div>
-        {/* アクションボタンはメッセージ本体の外側に配置 */}
+        {renderContent()}
+        
         {showActions && aiResponse && (
-             <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} />
+          <div className="mt-3 pt-2 border-t border-border/50">
+            <ProposalActions proposal={aiResponse} onFeedback={() => startFeedback(aiResponse)} />
+          </div>
         )}
       </div>
 
-       {isUser && (
-        <Avatar className="h-8 w-8 flex-shrink-0">
-           <AvatarFallback>
-             <User className="h-5 w-5" />
-           </AvatarFallback>
+      {isUser && (
+        <Avatar className="h-8 w-8 border border-primary/30 bg-primary/10 flex-shrink-0">
+          <AvatarFallback className="text-primary">
+            <User className="h-5 w-5" />
+          </AvatarFallback>
         </Avatar>
-       )}
-    </div>
+      )}
+    </motion.div>
   );
 }
