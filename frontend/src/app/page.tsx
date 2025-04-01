@@ -64,7 +64,7 @@ export default function Home() {
           <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-semibold text-xs md:text-sm">AI</span>
           </div>
-          <h1 className="text-base md:text-xl font-bold tracking-tight">AI Text Editor</h1>
+          <h1 className="text-base md:text-xl font-bold tracking-tight">新大陸 AIテキストエディタ</h1>
         </div>
         <div className="flex items-center gap-3">
           <ModeToggle />
