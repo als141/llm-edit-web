@@ -27,9 +27,9 @@ export default function Home() {
   }, [error, clearError]);
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* ヘッダーバーを追加 */}
-      <header className="flex items-center justify-between border-b px-6 py-3 bg-card">
+    <div className="flex flex-col h-screen">
+      {/* ヘッダーバー */}
+      <header className="flex-none flex items-center justify-between border-b px-6 py-3 bg-card">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-semibold text-sm">AI</span>
@@ -42,15 +42,14 @@ export default function Home() {
       </header>
 
       {/* メインコンテンツエリア */}
-      <div className="flex-grow overflow-hidden p-0">
+      <div className="flex-grow h-[calc(100vh-100px)] overflow-hidden">
         <ResizablePanelGroup
           direction="horizontal"
-          className="h-full rounded-lg"
+          className="h-full"
         >
           <ResizablePanel 
             defaultSize={35} 
-            minSize={25} 
-            className="transition-all duration-200 ease-in-out"
+            minSize={25}
           >
             <ChatPanel />
           </ResizablePanel>
@@ -59,18 +58,17 @@ export default function Home() {
           
           <ResizablePanel 
             defaultSize={65} 
-            minSize={35} 
-            className="transition-all duration-200 ease-in-out"
+            minSize={35}
           >
             <EditorPanel />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
       
-      {/* フッターを追加 */}
-      <footer className="border-t py-2 px-6 text-center text-sm text-muted-foreground bg-card/50">
+      {/* フッター */}
+      <footer className="flex-none border-t py-2 px-6 text-center text-sm text-muted-foreground bg-card/50">
         <p>AI Text Editor &copy; {new Date().getFullYear()}</p>
       </footer>
-    </main>
+    </div>
   );
 }

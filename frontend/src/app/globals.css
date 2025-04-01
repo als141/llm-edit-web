@@ -271,3 +271,48 @@
   background-size: 200% 200%;
   animation: gradient-shift 3s ease infinite;
 }
+
+/* カスタムスクロールバースタイル */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* コンテンツ配置関連のユーティリティ */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.min-h-dialog-content {
+  min-height: 150px;
+  max-height: calc(80vh - 200px);
+}
+
+:root {
+  --header-height: 57px;
+  --footer-height: 37px;
+  --main-height: calc(100vh - var(--header-height) - var(--footer-height));
+}
