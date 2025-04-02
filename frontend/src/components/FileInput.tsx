@@ -52,17 +52,6 @@ export function FileInput() {
     setTextInput(event.target.value);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      readFile(file);
-    }
-    if (event.target) {
-      event.target.value = '';
-    }
-  };
-
   const readFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -81,6 +70,17 @@ export function FileInput() {
       });
     };
     reader.readAsText(file, 'UTF-8');
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      readFile(file);
+    }
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -142,7 +142,7 @@ export function FileInput() {
       setFileName(files[0].name);
       readFile(files[0]);
     }
-  }, []);
+  }, [readFile]);
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();

@@ -239,9 +239,9 @@ export const useEditorStore = create<EditorState>()(
           state.isLoading = false;
         });
 
-      } catch (err: any) {
-        console.error("sendMessage error:", err);
-        const errorMessage = err.message || 'メッセージの送信中にエラーが発生しました。';
+      } catch (error: unknown) {
+        console.error("sendMessage error:", error);
+        const errorMessage = error instanceof Error ? error.message : 'メッセージの送信中にエラーが発生しました。';
         set((state) => {
           // ローディングメッセージを削除
           state.history = state.history.filter(
@@ -262,7 +262,7 @@ export const useEditorStore = create<EditorState>()(
           state.lastProposal = null;
           state.isFeedbackMode = false;
         });
-        throw err; // エラーを再スローして呼び出し元で処理できるようにする
+        throw error; // エラーを再スローして呼び出し元で処理できるようにする
       }
     },
 
@@ -298,8 +298,8 @@ export const useEditorStore = create<EditorState>()(
         } else if (proposal.status === 'multiple_edits') {
           const { edits } = proposal;
           if (Array.isArray(edits)) {
-            let currentContent = get().currentText;
-            let problems: string[] = [];
+            const currentContent = get().currentText;
+            const problems: string[] = [];
             let appliedCount = 0;
             const validatedEdits: (Edit & { startIndex: number; endIndex: number })[] = [];
             const overlappingIndices = new Set<number>();
@@ -316,8 +316,8 @@ export const useEditorStore = create<EditorState>()(
                 // フィードバック提案で old_string が見つからない場合、
                 // 元のテキストに直接新しいnew_stringを検索して適用するように試みる
                 const escapedOldString = escapeRegExp(edit.old_string);
-                let regex = new RegExp(escapedOldString, 'g');
-                let indices: number[] = [];
+                const regex = new RegExp(escapedOldString, 'g');
+                const indices: number[] = [];
                 let match;
                 
                 while ((match = regex.exec(currentContent)) !== null) {
@@ -338,7 +338,7 @@ export const useEditorStore = create<EditorState>()(
                     if (baseText.length > 10) { // 十分な長さがある場合のみ
                         const escapedBaseText = escapeRegExp(baseText);
                         const baseRegex = new RegExp(escapedBaseText, 'g');
-                        let baseIndices: number[] = [];
+                        const baseIndices: number[] = [];
                         let baseMatch;
                         
                         while ((baseMatch = baseRegex.exec(currentContent)) !== null) {
@@ -438,9 +438,9 @@ export const useEditorStore = create<EditorState>()(
           });
         }
 
-      } catch (err: any) {
-        console.error("applyEdit error:", err);
-        const errorMessage = err.message || '編集の適用中にエラーが発生しました。';
+      } catch (error: unknown) {
+        console.error("applyEdit error:", error);
+        const errorMessage = error instanceof Error ? error.message : '編集の適用中にエラーが発生しました。';
         set((state) => {
           state.error = errorMessage;
           const existingErrorIndex = state.history.findIndex((h: ConversationMessage) =>

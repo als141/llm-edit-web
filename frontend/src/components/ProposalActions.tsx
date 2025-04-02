@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Check, X, MessageSquarePlus, Pencil, RefreshCw, MessageSquare, Bot } from 'lucide-react';
 import { useEditorStore } from "@/store/editorStore";
@@ -42,6 +42,13 @@ function ProposalActionsComponent({ proposal, onFeedback, isMobile = false, mess
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isHovered, setIsHovered] = useState<string | null>(null);
+
+  // アニメーション用のバリアントをメモ化
+  const buttonVariants = useMemo(() => ({
+    initial: { scale: 1 },
+    hover: { scale: 1.05 },
+    tap: { scale: 0.95 },
+  }), []);
 
   // シートを開くときに呼び出す関数 - stopPropagationを追加
   const handleOpenFeedbackSheet = useCallback((e: React.MouseEvent) => {
@@ -95,12 +102,6 @@ function ProposalActionsComponent({ proposal, onFeedback, isMobile = false, mess
       default: return '提案';
     }
   }, [proposal.status]);
-
-  const buttonVariants = {
-    initial: { scale: 1 },
-    hover: { scale: 1.05 },
-    tap: { scale: 0.95 },
-  };
 
   // ボタンのレンダリング
   const renderButton = useCallback((

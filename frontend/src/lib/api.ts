@@ -39,12 +39,12 @@ export async function callEditApi(requestData: ApiRequest): Promise<AiResponse> 
     const data: AiResponse = await response.json();
     return data;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API call failed:', error);
     // エラーを一貫した AiResponse 形式で返す
     return {
       status: 'error',
-      message: error.message || 'API通信中に不明なエラーが発生しました。',
+      message: error instanceof Error ? error.message : 'API通信中に不明なエラーが発生しました。',
     };
   }
 }

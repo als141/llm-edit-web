@@ -35,7 +35,6 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,11 +56,6 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
       window.removeEventListener("resize", checkScreenSize);
     };
   }, []);
-
-  // メッセージ数の監視
-  useEffect(() => {
-    setMessageCount(history.length);
-  }, [history]);
 
   const handleSend = () => {
     if (inputValue.trim() && !isLoading) {
@@ -151,7 +145,7 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
             )}
             
             {/* ファイルが読み込まれているが、テキストがまだ表示されていない場合に表示するボタン (モバイル用) */}
-            {fileContent && onSelectEditor && (
+            {fileContent && onSelectEditor && isMobile && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
