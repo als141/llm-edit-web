@@ -289,9 +289,9 @@ export const useEditorStore = create<EditorState>()(
               appliedMessage = `提案 (単一編集) を適用しました。`;
               success = true;
             } else if (count > 1) {
-               throw new Error(`変更元テキストが複数 (${count}箇所) 見つかりました。適用を中止します。\n変更元: ${old_string.substring(0,50)}...`);
+              throw new Error(`変更元テキストが複数 (${count}箇所) 見つかりました。適用を中止します。\n変更元: ${old_string.substring(0,50)}...`);
             } else {
-               throw new Error(`変更元テキストが見つかりませんでした。\n変更元: ${old_string.substring(0,50)}...`);
+              throw new Error(`変更元テキストが見つかりませんでした。\n変更元: ${old_string.substring(0,50)}...`);
             }
           } else {
             throw new Error('提案の形式が無効です (success)。');
@@ -299,61 +299,110 @@ export const useEditorStore = create<EditorState>()(
         } else if (proposal.status === 'multiple_edits') {
           const { edits } = proposal;
           if (Array.isArray(edits)) {
-             let currentContent = get().currentText;
-             let problems: string[] = [];
-             let appliedCount = 0;
-             const validatedEdits: (Edit & { startIndex: number; endIndex: number })[] = [];
-             const overlappingIndices = new Set<number>();
+            let currentContent = get().currentText;
+            let problems: string[] = [];
+            let appliedCount = 0;
+            const validatedEdits: (Edit & { startIndex: number; endIndex: number })[] = [];
+            const overlappingIndices = new Set<number>();
 
-             for (const edit of edits) {
-                 if (typeof edit.old_string !== 'string' || typeof edit.new_string !== 'string' || !edit.old_string) {
-                     problems.push(`無効な編集形式: ${JSON.stringify(edit)}`);
-                     continue;
-                 }
-                 const escapedOldString = escapeRegExp(edit.old_string);
-                 const regex = new RegExp(escapedOldString, 'g');
-                 const indices = [];
-                 let match;
-                 while ((match = regex.exec(currentContent)) !== null) {
-                     indices.push(match.index);
-                     if (match.index === regex.lastIndex) {
-                         regex.lastIndex++;
-                     }
-                 }
+            // フィードバックから生成された提案かどうかをチェック
+            const isFeedbackProposal = get().feedbackMessageIds.length > 0;
+            
+            for (const edit of edits) {
+                if (typeof edit.old_string !== 'string' || typeof edit.new_string !== 'string' || !edit.old_string) {
+                    problems.push(`無効な編集形式: ${JSON.stringify(edit)}`);
+                    continue;
+                }
 
-                 if (indices.length === 0) {
-                     problems.push(`変更元が見つかりません: ${edit.old_string.substring(0, 30)}...`);
-                 } else if (indices.length > 1) {
-                     problems.push(`変更元が複数 (${indices.length}) 見つかりました: ${edit.old_string.substring(0, 30)}...`);
-                 } else {
-                     const startIndex = indices[0];
-                     const endIndex = startIndex + edit.old_string.length;
-                     const currentRange = new Set(Array.from({length: endIndex - startIndex}, (_, i) => startIndex + i));
-                     if ([...currentRange].some(idx => overlappingIndices.has(idx))) {
+                // フィードバック提案で old_string が見つからない場合、
+                // 元のテキストに直接新しいnew_stringを検索して適用するように試みる
+                const escapedOldString = escapeRegExp(edit.old_string);
+                let regex = new RegExp(escapedOldString, 'g');
+                let indices: number[] = [];
+                let match;
+                
+                while ((match = regex.exec(currentContent)) !== null) {
+                    indices.push(match.index);
+                    if (match.index === regex.lastIndex) {
+                        regex.lastIndex++;
+                    }
+                }
+
+                // フィードバック提案で変更元が見つからない場合、別のアプローチを試みる
+                if (indices.length === 0 && isFeedbackProposal) {
+                    console.log(`フィードバック提案の変更元が見つかりませんでした: ${edit.old_string.substring(0, 30)}...`);
+                    console.log(`元テキストに直接適用を試みます`);
+                    
+                    // 元テキスト内でユニークな部分を特定する試み
+                    // 絵文字や特殊記号を除去して基本テキストで一致を試みる
+                    const baseText = edit.old_string.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\x00-\x7F]/g, '').trim();
+                    if (baseText.length > 10) { // 十分な長さがある場合のみ
+                        const escapedBaseText = escapeRegExp(baseText);
+                        const baseRegex = new RegExp(escapedBaseText, 'g');
+                        let baseIndices: number[] = [];
+                        let baseMatch;
+                        
+                        while ((baseMatch = baseRegex.exec(currentContent)) !== null) {
+                            baseIndices.push(baseMatch.index);
+                            if (baseMatch.index === baseRegex.lastIndex) {
+                                baseRegex.lastIndex++;
+                            }
+                        }
+                        
+                        if (baseIndices.length === 1) {
+                            // 基本テキストが一意に特定できたら、その部分を新しい内容で置き換える
+                            const startIndex = baseIndices[0];
+                            const endIndex = startIndex + baseText.length;
+                            const currentRange = new Set(Array.from({length: endIndex - startIndex}, (_, i) => startIndex + i));
+                            
+                            if (![...currentRange].some(idx => overlappingIndices.has(idx))) {
+                                validatedEdits.push({ 
+                                    old_string: currentContent.substring(startIndex, endIndex), 
+                                    new_string: edit.new_string,
+                                    startIndex, 
+                                    endIndex 
+                                });
+                                currentRange.forEach(idx => overlappingIndices.add(idx));
+                                continue; // 次の編集へ
+                            }
+                        }
+                    }
+                    
+                    // どうしても見つからない場合は問題として報告
+                    problems.push(`フィードバック後の変更元が見つかりません: ${edit.old_string.substring(0, 30)}...`);
+                } else if (indices.length === 0) {
+                    problems.push(`変更元が見つかりません: ${edit.old_string.substring(0, 30)}...`);
+                } else if (indices.length > 1) {
+                    problems.push(`変更元が複数 (${indices.length}) 見つかりました: ${edit.old_string.substring(0, 30)}...`);
+                } else {
+                    const startIndex = indices[0];
+                    const endIndex = startIndex + edit.old_string.length;
+                    const currentRange = new Set(Array.from({length: endIndex - startIndex}, (_, i) => startIndex + i));
+                    if ([...currentRange].some(idx => overlappingIndices.has(idx))) {
                           problems.push(`他の編集と重複します: ${edit.old_string.substring(0, 30)}...`);
-                     } else {
-                         validatedEdits.push({ ...edit, startIndex, endIndex });
-                         currentRange.forEach(idx => overlappingIndices.add(idx));
-                     }
-                 }
-             }
+                    } else {
+                        validatedEdits.push({ ...edit, startIndex, endIndex });
+                        currentRange.forEach(idx => overlappingIndices.add(idx));
+                    }
+                }
+            }
 
-             if (problems.length > 0) {
+            if (problems.length > 0) {
                   throw new Error(`複数編集の検証エラー:\n- ${problems.join('\n- ')}`);
-             }
+            }
 
-             validatedEdits.sort((a, b) => b.startIndex - a.startIndex);
-             newText = currentContent;
-             for (const ve of validatedEdits) {
+            validatedEdits.sort((a, b) => b.startIndex - a.startIndex);
+            newText = currentContent;
+            for (const ve of validatedEdits) {
                   newText = newText.substring(0, ve.startIndex) + ve.new_string + newText.substring(ve.endIndex);
                   appliedCount++;
-             }
+            }
 
-             if(appliedCount !== edits.length) {
+            if(appliedCount !== edits.length) {
                 console.warn(`複数編集の適用数が一致しません。 Expected: ${edits.length}, Applied: ${appliedCount}`);
-             }
-             appliedMessage = `提案 (${appliedCount}箇所の複数編集) を適用しました。`;
-             success = true;
+            }
+            appliedMessage = `提案 (${appliedCount}箇所の複数編集) を適用しました。`;
+            success = true;
 
           } else {
             throw new Error('提案の形式が無効です (multiple_edits)。');
@@ -391,13 +440,13 @@ export const useEditorStore = create<EditorState>()(
         }
 
       } catch (err: any) {
-         console.error("applyEdit error:", err);
-         const errorMessage = err.message || '編集の適用中にエラーが発生しました。';
-         set((state) => {
-           state.error = errorMessage;
-           const existingErrorIndex = state.history.findIndex((h: ConversationMessage) =>
-               h.type === MessageType.Error && typeof h.content === 'string' && h.content.startsWith('適用エラー:')
-           );
+        console.error("applyEdit error:", err);
+        const errorMessage = err.message || '編集の適用中にエラーが発生しました。';
+        set((state) => {
+          state.error = errorMessage;
+          const existingErrorIndex = state.history.findIndex((h: ConversationMessage) =>
+              h.type === MessageType.Error && typeof h.content === 'string' && h.content.startsWith('適用エラー:')
+          );
             if (existingErrorIndex === -1) {
                 state.history.push({
                     id: nanoid(),
@@ -406,13 +455,13 @@ export const useEditorStore = create<EditorState>()(
                     type: MessageType.Error,
                 });
             }
-         });
-         
-         // エラーのトースト通知
-         toast.error("編集の適用に失敗しました", {
-           description: errorMessage,
-           icon: "⚠️", // 絵文字を使用
-         });
+        });
+        
+        // エラーのトースト通知
+        toast.error("編集の適用に失敗しました", {
+          description: errorMessage,
+          icon: "⚠️", // 絵文字を使用
+        });
       }
     },
 

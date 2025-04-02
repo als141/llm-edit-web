@@ -23,7 +23,7 @@ try:
     if not openai_api_key:
         raise ValueError("環境変数 'OPENAI_API_KEY' が設定されていません。")
     client = OpenAI(api_key=openai_api_key)
-    MODEL = "gpt-4o-mini" # 使用するモデル
+    MODEL = "o3-mini-2025-01-31" # 使用するモデル
 except Exception as e:
     print(f"FATAL: OpenAIクライアントの初期化に失敗しました: {e}")
     # 関数呼び出し時にエラーレスポンスを返すように client を None に設定
@@ -201,7 +201,6 @@ def get_openai_response_api(
             model=MODEL,
             messages=messages, # type: ignore
             response_format={"type": "json_object"},
-            temperature=0.5, # 少し創造性を抑える
         )
         response_content = response.choices[0].message.content
 
