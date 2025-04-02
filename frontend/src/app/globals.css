@@ -64,17 +64,23 @@
   --purple-800: #5b21b6;
   --purple-900: #4c1d95;
 
-  /* 基本高さ変数 - フッターなしに修正 */
+  /* 基本高さ変数 - セーフエリア対応 */
   --header-height: 57px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --browser-nav-height: 0px; /* デフォルト値 */
+  
+  /* メインコンテンツ計算用変数 */
   --main-height: calc(100vh - var(--header-height));
   
   /* タブ関連変数 */
   --tab-height: 40px;
-  --mobile-input-height: 80px;
+  --mobile-input-height: 60px; /* 入力エリアを少しコンパクトに */
   
-  /* コンテンツ領域計算用 */
+  /* コンテンツ領域計算用 - セーフエリア対応 */
   --mobile-content-height: calc(var(--main-height) - var(--tab-height));
-  --mobile-chat-content: calc(var(--mobile-content-height) - var(--mobile-input-height));
+  --mobile-chat-content: calc(var(--mobile-content-height) - var(--mobile-input-height) - var(--safe-area-bottom));
+  --input-bottom-offset: calc(var(--safe-area-bottom) + var(--browser-nav-height));
 }
 
 /* ダークモードカラー */
@@ -143,6 +149,27 @@
 
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* セーフエリア対応のためのユーティリティクラス */
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.safe-area-top {
+  padding-top: var(--safe-area-top);
+}
+
+.pb-safe {
+  padding-bottom: calc(0.5rem + var(--safe-area-bottom));
+}
+
+.mb-safe {
+  margin-bottom: var(--safe-area-bottom);
+}
+
+.h-safe-input {
+  height: calc(var(--mobile-input-height) + var(--safe-area-bottom));
 }
 
 /* カスタムユーティリティ定義 */
@@ -276,6 +303,181 @@
   overflow-wrap: break-word;
 }
 
+/* モバイル向けの最適化 */
+@media (max-width: 767px) {
+  :root {
+    --header-height: 45px;  /* コンパクト化 */
+    --tab-height: 33px;     /* タブバーの高さ */
+    --mobile-input-height: 55px;  /* 入力エリアの高さをさらに調整 */
+    --browser-nav-height: 15px; /* モバイルブラウザのナビゲーションの推定高さ */
+  }
+  
+  /* モバイル向けのスクロールバー最適化 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  /* インラインフォームの改良スタイル */
+  .mobile-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem 0.75rem;
+    padding-bottom: calc(0.5rem + var(--safe-area-bottom));
+    background-color: var(--card);
+    z-index: 50;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* コンテンツエリアのスクロール調整 */
+  .mobile-content-scroll {
+    height: calc(100vh - var(--header-height) - var(--tab-height) - var(--mobile-input-height) - var(--safe-area-bottom));
+    overflow-y: auto;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* チャットコンテナをミスタップから保護 */
+  .chat-container {
+    padding-bottom: calc(var(--mobile-input-height) + var(--safe-area-bottom) + 1rem);
+  }
+  
+  /* タブレイアウト最適化 */
+  .flex-grow {
+    flex-grow: 1;
+  }
+  
+  /* テキスト最適化 */
+  .text-xs {
+    font-size: 0.7rem;
+  }
+  
+  /* 余白最適化 */
+  .p-2 {
+    padding: 0.4rem;
+  }
+  
+  .gap-2 {
+    gap: 0.4rem;
+  }
+  
+  /* アニメーション最適化 */
+  .animate-in.fade-in-5 {
+    animation-duration: 200ms;
+  }
+  
+  /* ボタンサイズの最適化 */
+  .h-7 {
+    height: 1.6rem;
+  }
+  
+  /* カードヘッダーとフッターのコンパクト化 */
+  .card-header-mobile {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .card-footer-mobile {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  /* 固定ヘッダーのz-index管理 */
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  
+  /* モバイル向けにシャドウを強調して重なりを明確に */
+  .mobile-shadow {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* iOS固有のセーフエリア対応 - ノッチ/ダイナミックアイランド対応 */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .ios-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* スクロール制御の強化 */
+.overflow-auto-mobile {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 入力エリアのスタイル強化 */
+.input-area-container {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--card);
+  z-index: 20;
+  border-top: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 767px) {
+  .input-area-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: var(--safe-area-bottom);
+  }
+  
+  /* 底面のセーフエリアにスペースを追加 */
+  .pb-safe-area {
+    padding-bottom: calc(var(--mobile-input-height) + var(--safe-area-bottom) + 1rem);
+  }
+  
+  /* コンテンツ高さの調整 - 固定ヘッダー/フッターを考慮 */
+  .content-height-mobile {
+    height: calc(100vh - var(--header-height) - var(--tab-height) - var(--mobile-input-height) - var(--safe-area-bottom));
+    overflow-y: auto;
+  }
+  
+  /* 編集エリアの高さ調整 */
+  .editor-height-mobile {
+    max-height: calc(100vh - var(--header-height) - var(--tab-height) - 2rem - var(--safe-area-bottom));
+  }
+}
+
+/* タッチ操作の最適化 */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  button.touch-friendly {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* フォーカスされていない入力エリア */
+.mobile-input-blur {
+  transform: translateY(0);
+}
+
+/* フォーカスされた入力エリア - キーボード表示時に上にシフト */
+.mobile-input-focus {
+  transform: translateY(-5px);
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 入力部分下部の余白 */
+.has-keyboard {
+  padding-bottom: 20vh; /* キーボード表示時により多く余白を取る */
+}
+
 /* Markdown/プローズのレスポンシブ調整 */
 .prose-xs {
   font-size: 0.75rem;
@@ -310,6 +512,55 @@
 .prose-xs code {
   font-size: 0.7rem;
   padding: 0.125rem 0.25rem;
+}
+
+/* モバイルデバイスでのタップ領域拡大 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ボタンのタップ領域をより広く */
+button.touch-friendly {
+  padding: 0.5rem 0.75rem;
+}
+
+/* モバイル向けにシャドウを強調して重なりを明確に（非モバイル） */
+.mobile-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* タブのトランジションをスムーズに */
+.tab-transition {
+  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+[data-state="inactive"].tab-transition {
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+}
+
+[data-state="active"].tab-transition {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* スクロール問題の防止 */
+.overflow-safe {
+  overscroll-behavior: contain;
+  position: relative;
+}
+
+/* 要素が重ならないようにするためのスペーサー */
+.bottom-spacer {
+  height: 1rem;
+}
+
+@media (max-width: 767px) {
+  .bottom-spacer {
+    height: 1.5rem;
+  }
 }
 
 /* テーマ設定 */
@@ -457,132 +708,4 @@ html, body {
 .min-h-dialog-content {
   min-height: 150px;
   max-height: calc(80vh - 200px);
-}
-
-/* モバイル向けの最適化 */
-@media (max-width: 767px) {
-  :root {
-    --header-height: 45px;  /* コンパクト化 */
-    --tab-height: 33px;     /* タブバーの高さ */
-    --mobile-input-height: 70px;  /* 入力エリアの高さ */
-  }
-  
-  /* モバイル向けのスクロールバー最適化 */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-  
-  /* タブレイアウト最適化 */
-  .flex-grow {
-    flex-grow: 1;
-  }
-  
-  /* テキスト最適化 */
-  .text-xs {
-    font-size: 0.7rem;
-  }
-  
-  /* 余白最適化 */
-  .p-2 {
-    padding: 0.4rem;
-  }
-  
-  .gap-2 {
-    gap: 0.4rem;
-  }
-  
-  /* コンテナの高さ最適化 */
-  .mobile-content-container {
-    height: var(--mobile-content-height);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  
-  .mobile-chat-container {
-    height: var(--mobile-chat-content);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  
-  /* アニメーション最適化 */
-  .animate-in.fade-in-5 {
-    animation-duration: 200ms;
-  }
-  
-  /* ボタンサイズの最適化 */
-  .h-7 {
-    height: 1.6rem;
-  }
-  
-  /* カードヘッダーとフッターのコンパクト化 */
-  .card-header-mobile {
-    padding: 0.4rem 0.5rem;
-  }
-  
-  .card-footer-mobile {
-    padding: 0.4rem 0.5rem;
-  }
-  
-  /* 固定ヘッダーのz-index管理 */
-  .fixed-header {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-  }
-  
-  /* モバイル向けにシャドウを強調して重なりを明確に */
-  .mobile-shadow {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  }
-}
-
-/* タッチ操作の最適化 */
-@media (pointer: coarse) {
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  button.touch-friendly {
-    padding: 0.5rem 0.75rem;
-  }
-}
-
-/* モバイル向けにシャドウを強調して重なりを明確に（非モバイル） */
-.mobile-shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* タブのトランジションをスムーズに */
-.tab-transition {
-  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
-}
-
-[data-state="inactive"].tab-transition {
-  opacity: 0;
-  transform: translateY(5px);
-  pointer-events: none;
-}
-
-[data-state="active"].tab-transition {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* スクロール問題の防止 */
-.overflow-safe {
-  overscroll-behavior: contain;
-  position: relative;
-}
-
-/* 要素が重ならないようにするためのスペーサー */
-.bottom-spacer {
-  height: 1rem;
-}
-
-@media (max-width: 767px) {
-  .bottom-spacer {
-    height: 1.5rem;
-  }
 }

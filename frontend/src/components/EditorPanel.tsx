@@ -22,6 +22,7 @@ export function EditorPanel() {
   } = useEditorStore((state) => state);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const [editedText, setEditedText] = useState(currentText);
   const contentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,8 +34,15 @@ export function EditorPanel() {
       setIsMobile(window.innerWidth < 768);
     };
     
+    // iOSデバイスの判定（セーフエリア対応に利用）
+    const checkPlatform = () => {
+      setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    };
+    
     // 初期チェック
     checkScreenSize();
+    checkPlatform();
     
     // リサイズイベントリスナー
     window.addEventListener("resize", checkScreenSize);
@@ -69,12 +77,12 @@ export function EditorPanel() {
     }
   }, [fileContent]);
 
-  // 適切な最大高さをcssプロパティとして取得（フッターなしの調整）
+  // 適切な最大高さをcssプロパティとして取得（セーフエリア対応）
   const getMaxHeightStyle = () => {
     return {
       maxHeight: isMobile 
-        ? 'calc(100vh - 150px)' // フッターなしのモバイル向け（ヘッダー+タブ+入力フォームの高さを考慮）
-        : 'calc(100vh - 160px)' // フッターなしのデスクトップ向け
+        ? 'calc(100vh - 150px - var(--safe-area-bottom))' // セーフエリア対応
+        : 'calc(100vh - 160px)' // デスクトップ向け
     };
   };
 
@@ -103,8 +111,11 @@ export function EditorPanel() {
   return (
     <div className="h-full flex flex-col bg-background">
       <Tabs value={editorView} onValueChange={setEditorView} className="h-full flex flex-col">
-        {/* ヘッダー部分 - ChatPanelとスタイルを完全に統一 */}
-        <div className="flex-none h-14 md:h-16 px-3 py-2 md:px-4 md:py-3 border-b bg-card shadow-sm z-10">
+        {/* ヘッダー部分 - ChatPanelとスタイルを完全に統一、セーフエリア対応 */}
+        <div className={cn(
+          "flex-none h-14 md:h-16 px-3 py-2 md:px-4 md:py-3 border-b bg-card shadow-sm z-10",
+          isIOS && "ios-safe-top" // iOS用のセーフエリア対応
+        )}>
           <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-2">
               <div className="h-5 w-5 md:h-6 md:w-6 text-primary">
@@ -115,21 +126,21 @@ export function EditorPanel() {
             <TabsList className="bg-muted/40 h-7 md:h-8">
               <TabsTrigger 
                 value="input" 
-                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs"
+                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs touch-target"
               >
                 <Type className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 <span className="hidden xs:inline">入力</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="editor" 
-                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs"
+                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs touch-target"
               >
                 <FileText className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 <span className="hidden xs:inline">プレビュー</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="raw" 
-                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs"
+                className="flex items-center gap-1 h-6 md:h-7 px-2 md:px-3 text-xs touch-target"
               >
                 <CodeIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 <span className="hidden xs:inline">Raw</span>
@@ -138,10 +149,14 @@ export function EditorPanel() {
           </div>
         </div>
         
-        {/* コンテンツ部分 - パディング最適化 */}
+        {/* コンテンツ部分 - セーフエリア対応 */}
         <div 
           ref={contentRef}
-          className="flex-grow p-2 md:p-4 overflow-y-auto scrollbar-thin editor-content"
+          className={cn(
+            "flex-grow p-2 md:p-4 overflow-y-auto scrollbar-thin editor-content editor-height-mobile",
+            "overscroll-contain", // オーバースクロール防止
+            isIOS && "pb-safe" // iOS用のセーフエリア対応
+          )}
         >
           <TabsContent value="input" className="space-y-2 md:space-y-4 mt-0 h-full animate-in fade-in-5 duration-300">
             {/* ファイル入力部分 */}
@@ -163,7 +178,7 @@ export function EditorPanel() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 rounded-full"
+                      className="h-7 w-7 p-0 rounded-full touch-target"
                       onClick={startEditing}
                     >
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -173,7 +188,13 @@ export function EditorPanel() {
                 </div>
               </div>
               
-              <div style={getMaxHeightStyle()} className="overflow-y-auto">
+              <div 
+                className="overflow-y-auto overscroll-contain"
+                style={{
+                  ...getMaxHeightStyle(),
+                  WebkitOverflowScrolling: 'touch' // iOS用スクロール最適化
+                }}
+              >
                 {fileContent === '' ? (
                   <div className="text-muted-foreground flex flex-col items-center justify-center p-4 md:p-8 h-32 md:h-48">
                     <FileText className="h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 text-muted-foreground/25" />
@@ -197,16 +218,19 @@ export function EditorPanel() {
                             ref={textareaRef}
                             value={editedText}
                             onChange={(e) => setEditedText(e.target.value)}
-                            className="min-h-[200px] font-mono text-xs md:text-sm border-primary/20 resize-y"
+                            className={cn(
+                              "min-h-[200px] font-mono text-xs md:text-sm border-primary/20 resize-y",
+                              isMobile && "text-[13px]" // モバイルでは少し大きめのフォント
+                            )}
                             placeholder="テキストを編集..."
                           />
                           
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2 pb-safe">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={handleCancelEditing}
-                              className="text-xs md:text-sm h-8"
+                              className="text-xs md:text-sm h-8 touch-target"
                             >
                               <XCircle className="h-3.5 w-3.5 mr-1.5" />
                               キャンセル
@@ -216,7 +240,7 @@ export function EditorPanel() {
                               variant="default"
                               size="sm"
                               onClick={handleSaveEditing}
-                              className="text-xs md:text-sm h-8"
+                              className="text-xs md:text-sm h-8 touch-target"
                               disabled={editedText === currentText}
                             >
                               <Save className="h-3.5 w-3.5 mr-1.5" />
@@ -231,8 +255,9 @@ export function EditorPanel() {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           className={cn(
-                            "text-xs md:text-sm whitespace-pre-wrap break-words font-mono",
-                            "bg-muted/30 p-2 md:p-4 rounded-md"
+                            "whitespace-pre-wrap break-words font-mono",
+                            "bg-muted/30 p-2 md:p-4 rounded-md",
+                            isMobile ? "text-[13px]" : "text-xs md:text-sm" // モバイルでは少し大きめのフォント
                           )}
                         >
                           {currentText}
@@ -247,14 +272,23 @@ export function EditorPanel() {
           
           <TabsContent value="raw" className="mt-0 h-full animate-in fade-in-5 duration-300">
             <div className="border rounded-md shadow-sm bg-card">
-              <div style={getMaxHeightStyle()} className="overflow-y-auto">
+              <div 
+                className="overflow-y-auto overscroll-contain"
+                style={{
+                  ...getMaxHeightStyle(),
+                  WebkitOverflowScrolling: 'touch' // iOS用スクロール最適化
+                }}
+              >
                 {fileContent === '' ? (
                   <div className="text-muted-foreground flex flex-col items-center justify-center p-4 md:p-8 h-32 md:h-48">
                     <CodeIcon className="h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 text-muted-foreground/25" />
                     <p className="text-center text-xs md:text-sm">テキストが入力されていません</p>
                   </div>
                 ) : (
-                  <pre className="p-2 md:p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto">
+                  <pre className={cn(
+                    "p-2 md:p-4 font-mono whitespace-pre-wrap overflow-x-auto",
+                    isMobile ? "text-[13px]" : "text-xs" // モバイルでは少し大きめのフォント
+                  )}>
                     {currentText}
                   </pre>
                 )}
