@@ -144,10 +144,10 @@ function ProposalActionsComponent({ proposal, onFeedback, isMobile = false, mess
             </Button>
           </motion.div>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="bottom" className="bg-popover text-popover-foreground border border-border">
           <div className="text-xs">
             <p className="font-medium">{label}</p>
-            {description && <p className="text-muted-foreground mt-1">{description}</p>}
+            {description && <p className="font-medium text-foreground mt-1">{description}</p>}
           </div>
         </TooltipContent>
       </Tooltip>

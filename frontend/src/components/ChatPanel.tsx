@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpDialog } from "@/components/HelpDialog";
+import { EditPromptHints } from "@/components/EditPromptHints";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,14 +157,14 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
     if (history.length > 0) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [history]);
+  }, [history, scrollToBottom]);
 
   // キーボード表示状態に変更があった場合のスクロール調整
   useEffect(() => {
     if (hasKeyboard) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [hasKeyboard]);
+  }, [hasKeyboard, scrollToBottom]);
 
   // 履歴削除の処理
   const handleClearHistory = () => {
@@ -186,6 +188,9 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* ヘルプボタン - 追加 */}
+            <HelpDialog />
+            
             {/* 履歴削除ボタン */}
             {history.length > 0 && (
               <TooltipProvider>
@@ -319,6 +324,9 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
         isMobile && "ios-safe-bottom" // iOS用セーフエリア
       )}>
         <div className="px-2 md:px-4 py-2 md:py-3">
+          {/* 編集プロンプトヒント - 追加 */}
+          {fileContent && <EditPromptHints />}
+          
           <div className={cn(
             "flex items-center gap-1.5 md:gap-2 p-1 rounded-full border bg-background",
             isInputFocused ? "ring-2 ring-primary/20" : "",
@@ -343,7 +351,7 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-70 hover:opacity-100" disabled={isLoading}>
-                      <Image className="h-4 w-4" />
+                      <Image className="h-4 w-4" aria-label="画像を追加" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
