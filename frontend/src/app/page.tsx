@@ -99,14 +99,14 @@ export default function Home() {
             </div>
           </Tabs>
         ) : (
-          // デスクトップ表示: 分割パネル
+          // デスクトップ表示: 分割パネル - パネルサイズを変更
           <ResizablePanelGroup
             direction="horizontal"
             className="h-full"
           >
             <ResizablePanel 
-              defaultSize={35} 
-              minSize={25}
+              defaultSize={65} 
+              minSize={35}
             >
               <ChatPanel />
             </ResizablePanel>
@@ -114,8 +114,8 @@ export default function Home() {
             <ResizableHandle withHandle className="bg-muted/50 transition-colors hover:bg-muted" />
             
             <ResizablePanel 
-              defaultSize={65} 
-              minSize={35}
+              defaultSize={35} 
+              minSize={25}
             >
               <EditorPanel />
             </ResizablePanel>

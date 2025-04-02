@@ -11,7 +11,7 @@ import {
 import { callEditApi } from '@/lib/api';
 import { nanoid } from 'nanoid';
 import { toast } from "sonner";
-// lucide-react コンポーネントは直接インポートしない
+import { MessageSquarePlus, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
 interface EditorState {
   fileContent: string;
@@ -76,10 +76,10 @@ export const useEditorStore = create<EditorState>()(
         state.isFeedbackMode = true;
         console.log("フィードバックモード開始:", proposal);
         
-        // フィードバックモード開始を通知 - JSXではなくアイコン識別子を使用
+        // フィードバックモード開始を通知
         toast.info("フィードバック入力モード", {
           description: "編集提案に対するフィードバックを入力できます",
-          icon: "MessageSquarePlus",
+          icon: "💬", // 絵文字を使用
           duration: 3000,
         });
       });
@@ -98,6 +98,7 @@ export const useEditorStore = create<EditorState>()(
       // 履歴削除の成功メッセージを表示
       toast.success("チャット履歴を削除しました", {
         description: "新しい会話を始めることができます",
+        icon: "🗑️", // 絵文字を使用
       });
     },
     
@@ -385,7 +386,7 @@ export const useEditorStore = create<EditorState>()(
           // 適用成功のトースト通知
           toast.success("編集を適用しました", {
             description: appliedMessage,
-            icon: "CheckCircle"
+            icon: "✅", // 絵文字を使用
           });
         }
 
@@ -410,7 +411,7 @@ export const useEditorStore = create<EditorState>()(
          // エラーのトースト通知
          toast.error("編集の適用に失敗しました", {
            description: errorMessage,
-           icon: "AlertCircle"
+           icon: "⚠️", // 絵文字を使用
          });
       }
     },
@@ -433,7 +434,7 @@ export const useEditorStore = create<EditorState>()(
       // 拒否のトースト通知
       toast.info("編集提案を拒否しました", {
         description: "別の指示を入力できます",
-        icon: "XCircle"
+        icon: "❌", // 絵文字を使用
       });
     },
   }))
