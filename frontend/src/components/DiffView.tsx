@@ -7,7 +7,7 @@ import { type AiResponse, type Edit } from '@/lib/types';
 import { useEditorStore } from '@/store/editorStore';
 import { useTheme } from "next-themes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { File, FileText, Code, Maximize2 } from 'lucide-react';
+import { FileText, Code, Maximize2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 

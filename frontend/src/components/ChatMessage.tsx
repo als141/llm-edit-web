@@ -10,7 +10,7 @@ import { DiffView } from './DiffView';
 import { ProposalActions } from './ProposalActions';
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
   }, [message.role]);
   
   const isAssistant = message.role === MessageRole.Assistant;
-  const isSystem = message.role === MessageRole.System;
   const isProposal = message.type === MessageType.Proposal;
   const isLoading = message.type === MessageType.Loading;
   const isError = message.type === MessageType.Error;
@@ -221,28 +220,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
           : 'bg-card/80 backdrop-blur-sm border border-border/30 rounded-tl-sm shadow-sm'
     );
   }, [isLoading, isError, isSystemInfo]);
-
-  // アニメーション設定
-  const messageVariants = {
-    hidden: { opacity: 0, y: 10, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1, 
-      transition: { 
-        duration: 0.3,
-        ease: "easeOut"
-      } 
-    },
-    exit: { 
-      opacity: 0, 
-      scale: 0.95, 
-      transition: { 
-        duration: 0.2,
-        ease: "easeIn"
-      } 
-    }
-  };
 
   // セーフエリア (内容をラップする)
   const contentWrapper = useCallback((children: React.ReactNode) => (

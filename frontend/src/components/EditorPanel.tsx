@@ -19,7 +19,6 @@ export function EditorPanel() {
     startEditing, 
     cancelEditing, 
     saveEditing,
-    updateCurrentText 
   } = useEditorStore((state) => state);
 
   const [isMobile, setIsMobile] = useState(false);

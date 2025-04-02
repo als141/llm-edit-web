@@ -2,7 +2,7 @@
 
 import React, { memo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Check, X, MessageSquarePlus, ThumbsUp, Pencil, RefreshCw, MessageSquare, Bot } from 'lucide-react';
+import { Check, X, MessageSquarePlus, Pencil, RefreshCw, MessageSquare, Bot } from 'lucide-react';
 import { useEditorStore } from "@/store/editorStore";
 import { AiResponse } from "@/lib/types";
 import {
@@ -16,8 +16,8 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { 
   Tooltip, 

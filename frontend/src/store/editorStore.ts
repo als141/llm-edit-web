@@ -11,7 +11,6 @@ import {
 import { callEditApi } from '@/lib/api';
 import { nanoid } from 'nanoid';
 import { toast } from "sonner";
-import { MessageSquarePlus, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
 interface EditorState {
   fileContent: string;

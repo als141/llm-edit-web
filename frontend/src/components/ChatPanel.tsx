@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendHorizontal, Bot, Sparkles, FileText, ClipboardPaste, Smile, Image, Trash2, AlertCircle, Paperclip } from 'lucide-react';
+import { SendHorizontal, Bot, Sparkles, FileText, Smile, Image, Trash2, Paperclip } from 'lucide-react';
 import { ChatMessage } from '@/components/ChatMessage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -39,7 +39,6 @@ export function ChatPanel({ onSelectEditor }: ChatPanelProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // レスポンシブ対応

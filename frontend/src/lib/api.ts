@@ -1,4 +1,4 @@
-import { type AiResponse, type ConversationMessage, type MessageRole } from '@/lib/types';
+import { type AiResponse } from '@/lib/types';
 
 // バックエンドのFirebase Functions URLを設定
 // 環境変数から読み込むのが望ましい
